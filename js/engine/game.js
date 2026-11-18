@@ -29,6 +29,10 @@ const zoneDef = (p, z) => {
   return 0.75 * r.perD + 0.15 * r.spd + 0.1 * r.iq;
 };
 
+// Spread-of-results knobs. Per league in rules.js cal.rb (rubber band: leaders relax / trailers press, in logit per point
+// beyond rbStart, capped, fading out between rbPeak and rbFade so mismatches can still blow out). Harness: ?tune=key:value
+// overrides the league's rb values (TUNE.use = 1); skill multiplies cal.skill; form = per-game shooting form spread.
+export const TUNE = { use: 0, form: 0.05, skill: 1 };
 export class Game {
   // home/away: { id, name, abbr, players:[{id,name,pos,ht,r:{...}}], tactics, plan:{starters:[ids], min:{id:minutes}}, coach:{off,def,gm} }
   // opts: { league:'ncaa'|'wnba', seed, neutral, userSide: 0|1|null (that side's subs stay manual if plan.manual) }
@@ -43,7 +47,7 @@ export class Game {
   }
 
   makeSide(t, i) {
-    const players = t.players.map(p => ({ ...p, e: 1, form: this.rng.gauss() * (1 - p.r.cons / 24) * 0.05 }));
+    const players = t.players.map(p => ({ ...p, e: 1, form: this.rng.gauss() * (1 - p.r.cons / 24) * TUNE.form }));
     const by = Object.fromEntries(players.map(p => [p.id, p]));
     const plan = t.plan || {};
     let starters = (plan.starters || []).filter(id => by[id]);
@@ -308,7 +312,7 @@ export class Game {
     const astP = clamp(C.ast[zone] * ot.ast * (0.8 + avg(onO.filter(p => p !== shooter), p => p.r.pas * 0.6 + p.r.vis * 0.4) / 50), 0, 0.95);
     // Make probability (logit space).
     const sk = zoneSkill(shooter, zone) * (0.82 + 0.18 * shooter.e);
-    let x = logit(C.make[zone]) + C.skill * (0.055 * (sk - C.ratingRef) - 0.04 * (dv - C.ratingRef)) + shooter.form;
+    let x = logit(C.make[zone]) + C.skill * TUNE.skill * (0.055 * (sk - C.ratingRef) - 0.04 * (dv - C.ratingRef)) + shooter.form;
     x += (O.coach.off - 10) * 0.006 - (D.coach.def - 10) * 0.006;
     if (!this.neutral) x += O.i === 0 ? 0.035 : -0.035;
     if (ctx.trans) x += zone === 'rim' ? 0.35 : 0.1;
@@ -316,8 +320,12 @@ export class Game {
     x -= ctx.rushed;
     if (O.run >= 8) x += 0.05;
     // rubber band: big leads relax, big deficits press (real margins shrink this way)
-    if (ctx.diff > 8) x -= Math.min(0.25, 0.016 * (ctx.diff - 8));
-    else if (ctx.diff < -8) x += Math.min(0.18, 0.011 * (-ctx.diff - 8));
+    { // rubber band: strongest in competitive games, fading out in blowouts (a big mismatch can still run away)
+      const R = TUNE.use ? { ...C.rb, ...TUNE } : C.rb;
+      const d = Math.abs(ctx.diff), fade = d <= R.rbPeak ? 1 : Math.max(0, 1 - (d - R.rbPeak) / (R.rbFade - R.rbPeak));
+      if (ctx.diff > R.rbStart) x -= Math.min(R.rbLeadMax, R.rbLead * (d - R.rbStart)) * fade;
+      else if (ctx.diff < -R.rbStart) x += Math.min(R.rbTrailMax, R.rbTrail * (d - R.rbStart)) * fade;
+    }
     const clutch = this.q >= this.L.quarters && this.clock < 300 && Math.abs(ctx.diff) <= 5;
     if (clutch) x += 0.025 * (shooter.r.clu - 10);
     const willAst = rng() < astP;

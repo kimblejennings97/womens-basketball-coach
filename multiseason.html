@@ -7,7 +7,10 @@ const log = s => { out.push(s); o.textContent = out.join('\n'); };
 try {
   const W = await import('./js/game/world.js'), S = await import('./js/game/season.js'), SC = await import('./js/game/sched.js'), OF = await import('./js/game/offseason.js'), RC = await import('./js/game/recruit.js'), SV = await import('./js/game/saves.js');
   const team = q.get('team') || 'connecticut', N = +(q.get('seasons') || 2);
-  const G = W.newGame({ seed: +(q.get('seed') || 5), coachName: 'Test', mode: 'pick', team });
+  const E = await import('./js/engine/game.js'); for (const kv of (q.get('tune') || '').split(',').filter(Boolean)) { const [k, v] = kv.split(':'); E.TUNE[k] = +v; if (k !== 'skill' && k !== 'form') E.TUNE.use = 1; }
+  const marg = lg => { const m = G.games.filter(g => g.lg === lg && g.done).map(g => Math.abs(g.s[0] - g.s[1])).sort((a, b) => a - b); const n = m.length; return `${lg} margins n${n} mean ${f(m.reduce((s, x) => s + x, 0) / n)} median ${m[n >> 1]} <=5 ${f(m.filter(x => x <= 5).length / n)} >=20 ${f(m.filter(x => x >= 20).length / n)} >=30 ${f(m.filter(x => x >= 30).length / n)}`; };
+  const mode = q.get('mode') || 'pick';
+  const G = W.newGame({ seed: +(q.get('seed') || 5), coachName: 'Test', mode, team });
   G.user.auto = q.get('auto') !== '0';
   const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0, f = x => x.toFixed(2);
   const health = tag => {
@@ -20,6 +23,8 @@ try {
     const pay = wn.map(t => OF.payroll(G, t));
     const pres = nc.map(t => t.prestige);
     const byc = {}; for (const t of nc) for (const id of t.roster) { const p = G.players[id]; (byc[p.cls] ||= []).push(W.ovr(p)); }
+    { const ts = nc.map(t => avg(top8(t))).sort((a, b) => a - b), m = avg(ts), sd = Math.sqrt(avg(ts.map(x => (x - m) ** 2))); const q = p => f(ts[Math.floor(p * (ts.length - 1))]);
+      log(`   NCAA team strength (top-8 ovr): sd ${f(sd)} p5 ${q(0.05)} p25 ${q(0.25)} p50 ${q(0.5)} p75 ${q(0.75)} p95 ${q(0.95)} max ${q(1)}`); }
     log(`   NCAA ovr by class: ` + ['FR', 'SO', 'JR', 'SR', 'GR'].map(c => `${c} ${f(avg(byc[c] || []))}`).join(' ') + ` | WNBA ovr by age: ` + [[18, 23], [24, 26], [27, 29], [30, 32], [33, 45]].map(([a, b]) => { const v = wn.flatMap(t => t.roster.map(id => G.players[id])).filter(p => p.age >= a && p.age <= b).map(W.ovr); return `${a}-${b} n${v.length} ${f(avg(v))}`; }).join(' '));
     log(`[${tag}] ${SC.fmtDay(G.day, true)} season ${G.season} | NCAA top8 ovr ${f(avg(nc.flatMap(top8)))} best ${f(Math.max(...nc.flatMap(top8)))} rosters ${sizes(nc)} classes ${JSON.stringify(cls)} prestige avg ${f(avg(pres))} max ${f(Math.max(...pres))}`);
     log(`   WNBA top8 ovr ${f(avg(wn.flatMap(top8)))} best ${f(Math.max(...wn.flatMap(top8)))} rosters ${sizes(wn)} age ${f(avg(wAge))} payroll ${Math.min(...pay)}-${Math.max(...pay)} FA ${G.fa.length} | players ${Object.keys(G.players).length} gone ${Object.values(G.players).filter(p => p.league === 'gone').length} recruits ${(G.recruits || []).length} coaches ${Object.keys(G.coaches).length}`);
@@ -32,11 +37,19 @@ try {
   while (seasonsDone < N && guard++ < 400) {
     const r = S.advance(G, { stopAtUserGame: false });
     stops.push(r.stop + '@' + SC.fmtDay(r.day));
-    if (r.stop === 'jobs') { if (G.user.fired) OF.acceptJob(G, G.user.offers[0].tid); else OF.declineOffers(G); }
+    if (r.stop === 'jobs') {
+      const cur = G.teams[W.userTeam(G)], best = (G.user.offers || []).map(o => G.teams[o.tid]).filter(t => t.league === 'ncaa').sort((a, b) => b.prestige - a.prestige)[0];
+      log(`-- offers: ${(G.user.offers || []).map(o => `${G.teams[o.tid].short} (p${Math.round(G.teams[o.tid].prestige)})`).join(', ')}${G.user.fired ? ' [fired]' : ''}`);
+      if (G.user.fired) OF.acceptJob(G, G.user.offers[0].tid);
+      else if (q.get('move') && best && best.prestige > cur.prestige + 2) { OF.acceptJob(G, best.id); log(`   moved to ${best.name}`); }
+      else OF.declineOffers(G);
+    }
     if (r.stop === 'college-offseason') {
       const cal = SC.calendar(G.season);
+      log('   ' + marg('ncaa') + '   (real 16.3 / 12 / .18 / .28 / .14)');
+      { const ap = Object.values(G.teams).filter(t => t.league === 'ncaa').sort((a, b) => (b.rec.w - b.rec.l) - (a.rec.w - a.rec.l)).slice(0, 5).map(t => `${t.short} ${t.rec.w}-${t.rec.l}`); log('   best records: ' + ap.join(', ')); }
       log(`-- college offseason ${G.season}: champion ${G.teams[G.bracket.champ].name}; draft pool ${G.draftPool.length}; open jobs ${G.carousel ? G.carousel.open.length : 0}`);
-      const u = G.teams[team], c = G.coaches[u.coach]; log(`   user coach ${c.name} rep ${c.rep} ratings ${JSON.stringify(c.r)} perf ${JSON.stringify(c.perf)}`);
+      const u = G.teams[W.userTeam(G)], c = G.coaches[G.user.coach]; log(`   user team ${u.name} (p${u.prestige}) ${u.hist.at(-1)?.w}-${u.hist.at(-1)?.l} ${OF.finishLabel('ncaa', u.hist.at(-1)?.f)}`); log(`   user coach ${c.name} rep ${c.rep} ratings ${JSON.stringify(c.r)} perf ${JSON.stringify(c.perf)}`);
       const hi = Object.values(G.teams).filter(t => t.league === 'ncaa').sort((a, b) => b.prestige - a.prestige).slice(0, 8).map(t => `${t.short} ${t.prestige}`); log('   prestige top: ' + hi.join(', '));
       void cal;
     }
@@ -55,6 +68,7 @@ try {
       const json = SV.packGame(G); log(`   save ${(json.length / 1e6).toFixed(2)} MB`);
       log(`   news (user): ` + G.news.filter(n => n.me).slice(-8).map(n => n.text).join(' | '));
     }
+    if (r.stop === 'wnba-champion') { log('   ' + marg('wnba') + '   (real 11.8 / 10 / .27 / .17 / .05); standings ' + S.standings(G, 'wnba').map(t => `${t.abbr} ${t.rec.w}-${t.rec.l}`).join(' ')); }
     if (r.stop === 'wnba-champion') { const tr = Object.values(G.players).filter(p => p.league === 'ncaa' && p.from).length; log(`-- ${G.season} WNBA champion ${G.teams[G.wpo.champ].name}; transfers landed ${tr}; ` + G.news.filter(n => /portal opens|carousel|lottery/.test(n.text)).slice(-4).map(n => n.text).join(' | ')); }
     if (r.stop === 'max') break;
   }

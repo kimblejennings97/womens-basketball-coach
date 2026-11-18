@@ -369,8 +369,15 @@ function seriesResult(G, g, winner) {
 // ---------------------------------------------------------------- season stats helpers
 export const perGame = (st, k) => (st && st.g ? st[k] / st.g : 0);
 export const mpg = st => (st && st.g ? st.sec / 60 / st.g : 0);
+// League leaders this season (after a league's season ends its stats are in the players' history, so those are used).
 export function leaders(G, lg, key, n = 10, minG = 3) {
-  return Object.values(G.players).filter(p => p.league === lg && p.team && p.st && p.st.g >= minG).map(p => ({ p, v: key === 'reb' ? (p.st.orb + p.st.drb) / p.st.g : key === 'fgp' ? (p.st.fga >= 5 * p.st.g ? p.st.fgm / p.st.fga : 0) : p.st[key] / p.st.g }))
-    .sort((a, b) => b.v - a.v).slice(0, n);
+  const out = [];
+  for (const p of Object.values(G.players)) {
+    let st = p.league === lg && p.team && p.st && p.st.g ? p.st : null, team = p.team;
+    if (!st && p.hist?.length) { const h = p.hist.find(x => x.season === G.season && x.league === lg); if (h) { st = h.st; team = h.team; } }
+    if (!st || st.g < minG) continue;
+    out.push({ p, team, st, v: key === 'reb' ? (st.orb + st.drb) / st.g : key === 'fgp' ? (st.fga >= 5 * st.g ? st.fgm / st.fga : 0) : st[key] / st.g });
+  }
+  return out.sort((a, b) => b.v - a.v).slice(0, n);
 }
 export { fmtDay, emptyRec };

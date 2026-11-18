@@ -51,9 +51,9 @@ export function genClass(G, rng) {
   const raw = [];
   for (let i = 0; i < 1500; i++) {
     const u = i / 1500;
-    const lvl = 10.6 - 6 * Math.pow(u, 0.5) + rng.gauss() * 0.45;
+    const lvl = 11.2 - 7.2 * Math.pow(u, 0.45) + rng.gauss() * 0.45;
     const p = genPlayer(rng, { level: lvl, league: 'ncaa', cls: 'FR', age: 18 });
-    p.pot = clamp(Math.round(ovr(p) + 1.8 + (1 - u) ** 2 * 3.8 + rng.gauss() * 1.3), 1, 20);
+    p.pot = clamp(Math.round(ovr(p) + 1.8 + (1 - u) ** 3 * 6 + rng.gauss() * 1.3), 1, 20);
     raw.push(p);
   }
   raw.sort((a, b) => (ovr(b) * 0.65 + b.pot * 0.35) - (ovr(a) * 0.65 + a.pot * 0.35));
@@ -188,7 +188,7 @@ export function closeSigning(G, rng) {
   for (const t of teams) {
     let n = Math.min(2, openSpots(G, t));
     while (n-- > 0) {
-      const i = left.findIndex(R => STAR_NEED[R.rec.stars] <= t.prestige + 4);
+      const i = left.findIndex(R => STAR_NEED[R.rec.stars] <= t.prestige + 1.5);
       if (i < 0) break;
       commit(G, left.splice(i, 1)[0], t.id, true);
     }

@@ -208,7 +208,7 @@ function renderStats() {
   const lg = ui.tab.stlg || me().league;
   const cats = [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['stl', 'Steals'], ['blk', 'Blocks'], ['tpm', '3-pointers made'], ['fgp', 'FG% (5+ FGA/g)']];
   return `<div class="card"><div class="tabs">${['ncaa', 'wnba'].map(l => `<button class="${lg === l ? 'on' : ''}" data-act="tab" data-k="stlg" data-v="${l}">${l.toUpperCase()}</button>`).join('')}</div>
-    <div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${cats.map(([k, l]) => `<div><h3>${l} per game</h3><table class="tbl dense">${S.leaders(G, lg, k, 10).map((x, i) => `<tr><td>${i + 1}</td><td>${pl(x.p.id)}</td><td>${tn(x.p.team, 16)}</td><td class="num">${k === 'fgp' ? x.v.toFixed(3) : f1(x.v)}</td></tr>`).join('') || '<tr><td class="muted">No games yet</td></tr>'}</table></div>`).join('')}</div></div>`;
+    <div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${cats.map(([k, l]) => `<div><h3>${l} per game</h3><table class="tbl dense">${S.leaders(G, lg, k, 10).map((x, i) => `<tr><td>${i + 1}</td><td>${pl(x.p.id)}</td><td>${tn(x.team, 16)}</td><td class="num">${k === 'fgp' ? x.v.toFixed(3) : f1(x.v)}</td></tr>`).join('') || '<tr><td class="muted">No games yet</td></tr>'}</table></div>`).join('')}</div></div>`;
 }
 function renderTeams() {
   const lg = ui.tab.tlg || 'ncaa', q = (ui.tab.tq || '').toLowerCase();

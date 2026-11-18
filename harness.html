@@ -6,10 +6,11 @@
 <script type="module">
 // Calibration harness. ?league=ncaa|wnba&n=2000&level=9  (level = average rating of the generated teams)
 // &real=1 uses the real rosters (js/data/real.js) instead: random pairings of teams in that league.
-import { Game, ovr } from './js/engine/game.js';
+import { Game, ovr, TUNE } from './js/engine/game.js';
 import { makeRng } from './js/engine/rng.js';
 import { genRoster } from './js/data/gen.js';
 const q = new URLSearchParams(location.search);
+for (const kv of (q.get('tune') || '').split(',').filter(Boolean)) { const [k, v] = kv.split(':'); TUNE[k] = +v; if (k !== 'skill' && k !== 'form') TUNE.use = 1; }
 const league = q.get('league') || 'ncaa', N = +(q.get('n') || 2000), level = +(q.get('level') || (league === 'ncaa' ? 9 : 14));
 const T = { ncaa: { poss: 70.9, pts: 66.3, fga: 59.0, fg_pct: .408, tpa: 20.0, tp_pct: .310, fta: 16.8, ft_pct: .713, orb: 11.6, drb: 25.2, orb_pct: .316, ast: 13.3, stl: 8.3, blk: 3.2, tov: 16.1, pf: 16.75 },
             wnba: { poss: 82.3, pts: 87.1, fga: 68.6, fg_pct: .452, tpa: 25.5, tp_pct: .340, fta: 20.8, ft_pct: .786, orb: 8.5, drb: 25.0, orb_pct: .255, ast: 20.7, stl: 7.4, blk: 4.0, tov: 13.1, pf: 19.8 } }[league];
@@ -24,7 +25,7 @@ if (q.get('real')) {
 const tactic = q.get('off') || null, dtac = q.get('def') || null;
 const S = {}, add = (k, v) => S[k] = (S[k] || 0) + v;
 let games = 0, ot = 0, homeW = 0, t0 = performance.now();
-const margins = [];
+const margins = [], pts = [];
 for (let g = 0; g < N; g++) {
   const a = teams[Math.floor(rng() * teams.length)]; let b;
   const same = teams.filter(t => t.conf === a.conf && t !== a);
@@ -33,7 +34,7 @@ for (let g = 0; g < N; g++) {
   else do { b = teams[Math.floor(rng() * teams.length)]; } while (b === a);
   const G = new Game({ ...a, tactics: tactic ? { off: tactic, def: dtac || 'man' } : undefined }, { ...b, tactics: dtac ? { def: dtac } : undefined }, { league, seed: g * 7919 + 1 });
   const r = G.run(); games++; if (r.ot) ot++; if (r.winner === 0) homeW++;
-  margins.push(Math.abs(r.score[0] - r.score[1]));
+  margins.push(Math.abs(r.score[0] - r.score[1])); pts.push(r.score[0], r.score[1]);
   for (const tm of r.tm) for (const k in tm) add(k, tm[k]);
   add('ms', 0);
 }
@@ -46,6 +47,9 @@ out.push(row('poss', pg('poss'), T.poss), row('pts', pg('pts'), T.pts), row('fga
   row('orb', pg('orb'), T.orb), row('drb', pg('drb'), T.drb), row('orb%', S.orb / (S.orb + S.drb), T.orb_pct), row('ast', pg('ast'), T.ast), row('stl', pg('stl'), T.stl),
   row('blk', pg('blk'), T.blk), row('tov', pg('tov'), T.tov), row('pf', pg('pf'), T.pf), row('ppp', S.pts / S.poss, T.pts / T.poss));
 out.push(`OT rate ${(ot / games).toFixed(3)}  home win ${(homeW / games).toFixed(3)}  avg margin ${(margins.reduce((s, x) => s + x, 0) / games).toFixed(1)}`);
+{ const m = margins.slice().sort((a, b) => a - b), mean = pts.reduce((s, x) => s + x, 0) / pts.length, sd = Math.sqrt(pts.reduce((s, x) => s + (x - mean) ** 2, 0) / pts.length);
+  out.push(`margin median ${m[m.length >> 1]} p90 ${m[Math.floor(m.length * 0.9)]} <=5 ${(m.filter(x => x <= 5).length / m.length).toFixed(3)} >=20 ${(m.filter(x => x >= 20).length / m.length).toFixed(3)} >=30 ${(m.filter(x => x >= 30).length / m.length).toFixed(3)} | team pts sd ${sd.toFixed(1)}`);
+  out.push(`real margins: ${JSON.stringify({ wnba: { mean: 11.8, median: 10, le5: .272, ge20: .17, ge30: .054 }, ncaa: { mean: 16.3, median: 12, le5: .182, ge20: .277, ge30: .14 } }[league])}`); }
 // Strength check: level gap -> win% and margin
 if (!q.get('real')) for (const gap of [1, 2, 4]) {
   let w = 0, m = 0; const M = 400;

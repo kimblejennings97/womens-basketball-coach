@@ -79,11 +79,13 @@ export function coachGrowth(G, lg) {
       const room = c.r[k] >= 17 ? (20 - c.r[k]) / 4 : 1;
       c.r[k] = r1(clamp(c.r[k] + gain * (0.6 + rng() * 0.8) * (gain > 0 ? room : 1), 1, 20));
     }
-    c.rep = r1(clamp((c.rep ?? 8) + perf * 5 * (perf > 0 ? mult * 0.7 : 1) + (h.f === 6 || h.f === 3 && lg === 'wnba' ? 1.5 : 0), 1, 20));
+    // reputation: drifts toward the level of program you coach, jumps when you beat expectations (more at a small school)
+    const pp = t.p0 ?? t.prestige;
+    c.rep = r1(clamp((c.rep ?? 8) + (pp - (c.rep ?? 8)) * 0.12 + (perf > 0 ? perf * 6 * mult : perf * 5) + (h.f === 6 || (h.f === 3 && lg === 'wnba') ? 1.5 : 0), 1, 20));
     (c.perf ||= []).push(r1(perf * 100) / 100); if (c.perf.length > 4) c.perf.shift();
     c.hist.push({ season: G.season, team: t.id, w: h.w, l: h.l, f: h.f, lg });
     if (h.f === (lg === 'ncaa' ? 6 : 3)) { c.career.titles++; c.career[lg]++; }
-    if (c.user) news(G, `Season review: ${h.w}-${h.l}${h.f != null ? ', ' + finishLabel(lg, h.f) : ''}. ${perf > 0.08 ? 'Well above expectations' : perf > -0.05 ? 'About what was expected' : 'Below expectations'}${perf > 0.05 && mult > 1.2 ? ' for a program like this, and people noticed' : ''}. Reputation ${Math.round(c.rep)}.`, 1);
+    if (c.user) news(G, `Season review: ${h.w}-${h.l}${h.f != null ? ', ' + finishLabel(lg, h.f) : ''}. ${perf > 0.12 ? 'Well above expectations' : perf > 0.04 ? 'Above expectations' : perf > -0.05 ? 'About what was expected' : 'Below expectations'}${perf > 0.04 && mult > 1.2 ? ' for a program like this, and people noticed' : ''}. Reputation ${Math.round(c.rep)}.`, 1);
     for (const aid of t.staff) { const a = G.coaches[aid]; if (a && a.asst) a.r[a.asst] = r1(clamp(a.r[a.asst] + 0.15 + Math.max(0, perf) * mult * 0.6 + rng.gauss() * 0.2, 1, 20)); }
   }
 }
@@ -278,21 +280,19 @@ export function faOpen(G) {
   void u;
   aiSignFA(G, makeRng((G.seed ^ hash('fa' + G.season)) >>> 0), 13);
 }
-// AI teams fill toward `upTo` players with the best free agents they can afford (minimum deals always allowed).
+// Free agents sign best first; each picks among the AI teams that want her (an open spot she improves) and can pay her
+// ask, preferring winning teams (stars chase contenders), so talent concentrates the way it does in the real league.
 export function aiSignFA(G, rng, upTo = 12) {
   const u = ut(G);
-  for (let pass = 0; pass < 4; pass++) {
-    const teams = teamsOf(G, 'wnba').filter(t => (t.id !== u || G.user.auto) && t.roster.length < upTo).sort(() => rng() - 0.5);
-    if (!teams.length) break;
-    let any = false;
-    for (const t of teams) {
-      const room = capRoom(G, t), worst = Math.min(...t.roster.map(id => ovr(G.players[id])), 99);
-      const cand = G.fa.map(id => G.players[id]).filter(p => p && p.r && (askSalary(p) <= room || askSalary(p) === W.SAL.min)).sort((a, b) => ovr(b) - ovr(a));
-      const p = cand.find(q => t.roster.length < 11 || ovr(q) > worst);
-      if (!p) continue;
-      sign(G, t, p, askSalary(p), askYears(p)); any = true;
-    }
-    if (!any) break;
+  const win = t => { const h = t.hist?.[t.hist.length - 1], r = t.rec.w + t.rec.l ? t.rec : h || { w: 1, l: 1 }; return pct(r.w, r.l); };
+  const fas = G.fa.map(id => G.players[id]).filter(p => p && p.r).sort((a, b) => ovr(b) - ovr(a));
+  for (const p of fas) {
+    const ask = askSalary(p);
+    const want = teamsOf(G, 'wnba').filter(t => (t.id !== u || G.user.auto) && t.roster.length < upTo && (ask <= capRoom(G, t) || ask === W.SAL.min)
+      && (t.roster.length < 11 || ovr(p) > Math.min(...t.roster.map(id => ovr(G.players[id])))));
+    if (!want.length) continue;
+    const t = want.map(t => ({ t, s: win(t) * 2 + rng() })).sort((a, b) => b.s - a.s)[0].t;
+    sign(G, t, p, ask, askYears(p));
   }
 }
 // Weekly in the offseason: unsigned players lower their asks.
@@ -376,7 +376,7 @@ export function carousel(G, lg, d) {
   const cands = open.map(id => G.teams[id]).filter(t => t.id !== u).sort((a, b) => b.prestige - a.prestige);
   for (const t of cands) {
     if (offers.length >= 4) break;
-    const ok = lg === 'ncaa' ? t.prestige <= rep + 3 : rep >= 12 && t.prestige <= rep + 5;
+    const ok = lg === 'ncaa' ? t.prestige <= rep + 4 : rep >= 12 && t.prestige <= rep + 5;
     const better = G.user.fired || !cur || t.league !== cur.league || t.prestige > cur.prestige + 0.5;
     if (ok && better && rng() < 0.75) offers.push(t.id);
   }
@@ -570,7 +570,7 @@ export function rollover(G) {
       if (t.id === u) news(G, `${ps[0].name} is released (roster limit ${W.MAX_ROSTER.ncaa}).`, 1);
       RC.retire(G, ps[0]);
     }
-    while (t.roster.length < 12) { const p = W.addPlayer(G, t, genPlayer(rng, { level: 4.5 + t.prestige * 0.2, league: 'ncaa', cls: 'FR', age: 18 })); p.nil = 0; p.walkon = 1; p.num = String(rng.int(0, 55)); }
+    while (t.roster.length < 12) { const p = W.addPlayer(G, t, genPlayer(rng, { level: 3.6 + t.prestige * 0.2, league: 'ncaa', cls: 'FR', age: 18 })); p.nil = 0; p.walkon = 1; p.num = String(rng.int(0, 55)); }
     for (const id of t.roster) { const p = G.players[id]; if (!p.num) p.num = String(rng.int(0, 55)); }
   }
   if (joined[u]?.length) news(G, `${joined[u].length} freshmen join the program.`, 1);
