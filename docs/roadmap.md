@@ -7,7 +7,7 @@ Build order agreed with the user (2026-11-17):
 4. Season loop for both leagues, recruiting, portal, draft, contracts + trades, coaching carousel. **Done**
    (docs/season.md, docs/offseason.md).
 5. Stats, records, Hall of Fame. **Done** (docs/legacy.md).
-6. Animation.
+6. Animation. **Done**: court animation in the live viewer (docs/animation.md).
 
 ## Open items / ideas
 - WNBA salary numbers are placeholders (`SAL` in world.js); replace with the 2026 CBA scale when known. No draft-pick

@@ -14,6 +14,7 @@ live play-by-play with in-game coaching. Browser app, plain ES modules, no build
 | Screens, live game viewer, saves | `docs/ui.md` |
 | Offseason: eligibility, recruiting, NIL, portal, draft + lottery, WNBA contracts / FA / trades, coach growth, carousel, development, rollover | `docs/offseason.md` |
 | Awards, record books, career leaders, Hall of Fame | `docs/legacy.md` |
+| Live game court animation | `docs/animation.md` |
 | What is left to build, open items | `docs/roadmap.md` |
 
 Keep these files current: when you change a system, update its topic file (current design + knobs + measured results).
@@ -22,7 +23,8 @@ Keep these files current: when you change a system, update its topic file (curre
 - Steps 1-4 of the plan are built: real data (363 D1 + 15 WNBA teams), calibrated engine, all screens, live game viewer,
   both seasons + postseasons, and the full offseason loop (docs/offseason.md): 5-in-5 eligibility, NIL, recruiting,
   transfer portal, WNBA draft lottery + draft, free agency, cuts, trades, coaching carousel + job offers, coach growth /
-  reputation, development + aging, rollover to the next season. Step 5 (awards, records, Hall of Fame; docs/legacy.md) done 2026-11-17.
+  reputation, development + aging, rollover to the next season. Step 5 (awards, records, Hall of Fame; docs/legacy.md) and step 6 (court animation in the live viewer;
+  docs/animation.md) done 2026-11-17: all six steps of the original plan are built.
 - Engine matches real per-game averages and real margin distributions (docs/engine.md). `multiseason.html` runs N
   seasons and checks league health (rating levels, team-strength spread, margins, recruiting, save size): stable over 5.
 - Verified headlessly only (harnesses, multi-season runs, Edge screenshots of every new screen). The user has not played
@@ -61,7 +63,7 @@ Often away: keep going and report at the end.
   Pages -> Source: GitHub Actions). `py tools/build_deploy.py` builds dist/ locally; `deploy.bat` = optional Cloudflare.
 
 ## Layout
-- `index.html` + `js/ui/app.js` (all screens), `css/style.css`.
+- `index.html` + `js/ui/app.js` (all screens), `js/ui/court.js` (live court animation), `css/style.css`.
 - `js/engine/`: `game.js` (possession sim, Game class), `rules.js` (league rules, tactics, calibration constants), `rng.js`.
 - `js/game/`: `world.js` (state G, new game, coaches, strength, AI tactics, lineups), `sched.js` (calendar, schedules),
   `season.js` (day loop, results, standings, polls, brackets, offseason event hooks), `offseason.js` (archive, coach

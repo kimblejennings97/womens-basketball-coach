@@ -10,6 +10,7 @@ import { initSaves, loadLast, loadSlot, saveGame, deleteSlot, listSaves } from '
 import * as OF from '../game/offseason.js';
 import * as RC from '../game/recruit.js';
 import * as LG from '../game/legacy.js';
+import { Court } from './court.js';
 
 const $app = document.getElementById('app');
 await initSaves();
@@ -52,7 +53,7 @@ function go(screen, arg = null) { ui.screen = screen; ui.arg = arg; ui.msg = ui.
 // ---------------------------------------------------------------- render root
 function render() {
   if (!G) { $app.innerHTML = renderStart(); return; }
-  if (ui.screen === 'live' && ui.live) { $app.innerHTML = topbar() + `<div class="content">${renderLive()}</div>`; return; }
+  if (ui.screen === 'live' && ui.live) { $app.innerHTML = topbar() + `<div class="content">${renderLive()}</div>`; attachCourt(); return; }
   const lgNav = me().league === 'ncaa' ? [['recruit', 'Recruiting']] : [['fa', 'Free agency'], ['trade', 'Trades']];
   const nOff = (G.user.offers || []).length;
   const nav = [['home', 'Home'], ['roster', 'Roster'], ['tactics', 'Tactics'], ['schedule', 'Schedule'], ['standings', 'Standings'], ['rankings', 'Rankings'], ['bracket', 'Tournaments'], ['stats', 'Stats'], ['teams', 'Teams'], ...lgNav, ['draft', 'Draft'], ['history', 'History'], ['staff', 'Staff'], ...(nOff ? [['jobs', `Job offers (${nOff})`]] : [])];
@@ -393,6 +394,19 @@ function renderPregame() {
     <div class="card"><h2>Your plan</h2><div class="sub">${OFFENSES[t.tactics.off].name} · ${DEFENSES[t.tactics.def].name}${t.tactics.press ? ' + press' : ''} · ${PACES[t.tactics.pace].name}</div>${scout(t)}<div class="row"><a class="wlink" data-act="go" data-v="tactics">Change tactics / rotation</a></div></div></div>`;
 }
 const SPEEDS = { slow: 1400, normal: 650, fast: 220, turbo: 40 };
+// with the court animation on, a possession gets the time to play out
+const SPEEDS_COURT = { slow: 5200, normal: 3000, fast: 1500, turbo: 40 };
+let court = null;
+const courtOn = () => G.user.court !== false;
+const liveDelay = L => (courtOn() ? SPEEDS_COURT : SPEEDS)[L.speed];
+function courtState(game) {
+  return { on: [game.s[0].on.map(p => p.id), game.s[1].on.map(p => p.id)], tactics: [game.s[0].tactics, game.s[1].tactics], q: game.q,
+    home: game.s[0].players.map(p => p.id), nums: Object.fromEntries([...game.s[0].players, ...game.s[1].players].map(p => [p.id, G.players[p.id]?.num ?? ''])) };
+}
+function attachCourt() {
+  const box = document.getElementById('courtbox'); if (!box || !court) return;
+  court.attach(box);
+}
 function startLive(g) {
   const game = S.simGame(G, g);
   const side = g.h === W.userTeam(G) ? 0 : 1;
@@ -401,7 +415,17 @@ function startLive(g) {
   ui.live = { g, game, side, ev: [], speed: ui.live?.speed || 'normal', paused: false, sel: null, tab: 'pbp' };
   G.user.staffWindow = false;
   ui.screen = 'live';
-  tickLive();
+  // court: home colours / logo on the floor (neutral sites get a neutral court); confetti if the game decides a title
+  court ||= new Court();
+  const champ = winner => {
+    if (g.kind === 'ncaa' && g.tr === 5) return true;
+    if (g.kind === 'po' && g.sr === 2 && G.wpo) { const sr = G.wpo.r[2]?.[g.ser]; if (!sr) return false; const wid = winner === 0 ? g.h : g.a; return (wid === sr.a ? sr.wa : sr.wb) === 3; }
+    return false;
+  };
+  court.setGame({ home: G.teams[g.h], away: G.teams[g.a], lg: g.lg, neutral: !!g.neutral, hasLogo: true, champ });
+  render();
+  court.play(game.ev.slice(), courtState(game), courtOn() ? 2600 : 1);
+  ui.timer = setTimeout(tickLive, courtOn() ? 2600 : 300);
 }
 function tickLive() {
   clearTimeout(ui.timer);
@@ -410,9 +434,10 @@ function tickLive() {
     const evs = L.game.step(); L.ev.push(...evs);
     // pause on period ends so the coach can adjust
     if (evs.some(e => e.type === 'period' && e.text.startsWith('End')) && L.autoPause !== false) L.paused = true;
+    if (court && courtOn()) { if (L.speed === 'turbo') court.snap(evs, courtState(L.game)); else court.play(evs, courtState(L.game), liveDelay(L) * 0.94); }
   }
   render();
-  if (!L.paused && !L.game.done) ui.timer = setTimeout(tickLive, SPEEDS[L.speed]);
+  if (!L.paused && !L.game.done) ui.timer = setTimeout(tickLive, liveDelay(L));
 }
 function renderLive() {
   const L = ui.live, game = L.game, [H, A] = game.s, me_ = game.s[L.side];
@@ -429,7 +454,8 @@ function renderLive() {
   const done = game.done;
   const boxes = [H.box, A.box];
   return `<div class="card"><div class="sb">${sbT(A, 1)}<div><div class="per">${done ? 'FINAL' + (game.q > 4 ? ' (' + periodName(game.q) + ')' : '') : periodName(game.q)}</div><div class="clk">${done ? '' : fmtClock(game.clock)}</div>
-      <div class="ctrl" style="justify-content:center;margin-top:6px">${done ? `<button data-act="lfinish">Continue</button>` : `<button data-act="lpause">${L.paused ? '▶ Play' : '❚❚ Pause'}</button><select data-ch="lspeed">${Object.keys(SPEEDS).map(k => `<option ${L.speed === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="secondary" data-act="lsim">Sim to end</button>`}</div></div>${sbT(H, 0)}</div></div>
+      <div class="ctrl" style="justify-content:center;margin-top:6px">${done ? `<button data-act="lfinish">Continue</button>` : `<button data-act="lpause">${L.paused ? '▶ Play' : '❚❚ Pause'}</button><select data-ch="lspeed">${Object.keys(SPEEDS).map(k => `<option ${L.speed === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="secondary" data-act="lsim">Sim to end</button><label style="font-size:12px"><input type="checkbox" data-ch="lcourt" ${courtOn() ? 'checked' : ''}> Court</label>`}</div></div>${sbT(H, 0)}</div></div>
+    ${courtOn() ? '<div class="card courtcard"><div id="courtbox"></div></div>' : ''}
     <div class="gamewrap"><div class="card"><div class="tabs">${[['pbp', 'Play-by-play'], ['box', 'Box score']].map(([k, l]) => `<button class="${L.tab === k ? 'on' : ''}" data-act="ltab" data-v="${k}">${l}</button>`).join('')}</div>
       ${L.tab === 'pbp' ? `<div id="feed">${L.ev.slice(-160).reverse().map(evRow).join('')}</div>` : boxScore([H.id, A.id], boxes, [H.tm, A.tm], [H.qpts, A.qpts], [H.score, A.score])}</div>
     <div class="card"><h2>Your bench</h2>${done ? '' : `<div class="ctrl"><button data-act="lto" ${me_.to > 0 && !me_.wantTO ? '' : 'disabled'}>${me_.wantTO ? 'Timeout called' : 'Call timeout'}</button><label><input type="checkbox" data-ch="lmanual" ${me_.manual ? 'checked' : ''}> Manual subs</label></div>`}
@@ -745,6 +771,7 @@ document.addEventListener('change', e => {
   if (k === 'trchk') { const tr = ui.trade, arr = tr[el.dataset.k]; if (el.checked) arr.push(el.dataset.v); else tr[el.dataset.k] = arr.filter(x => x !== el.dataset.v); ui.tradeMsg = null; render(); return; }
   if (k === 'ltac') { const v = el.dataset.k === 'press' ? el.value === '1' : el.value; ui.live.game.setTactics(ui.live.side, { [el.dataset.k]: v }); render(); return; }
   if (k === 'lspeed') { ui.live.speed = el.value; tickLive(); return; }
+  if (k === 'lcourt') { G.user.court = el.checked; save(); render(); return; }
   if (k === 'lmanual') { ui.live.game.setManual(ui.live.side, el.checked); G.user.manualSubs = el.checked; render(); return; }
 });
 document.addEventListener('input', e => {
@@ -753,4 +780,4 @@ document.addEventListener('input', e => {
   if (el.dataset.ch === 'tabsel' && el.dataset.k === 'tq') { ui.tab.tq = el.value; const pos = el.selectionStart; render(); const n = document.querySelector('[data-k="tq"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }
 });
 render();
-window.__dbg = { get G() { return G; }, ui, ACTS, render, handleStop };
+window.__dbg = { get G() { return G; }, ui, ACTS, render, handleStop, get court() { return court; } };

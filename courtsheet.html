@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="css/style.css">
+<style>body{background:#0f1419;color:#ddd;font:12px system-ui;padding:8px} .row2{display:flex;gap:4px;margin:6px 0;align-items:flex-start} .row2 img{width:var(--iw,300px);border-radius:4px} .cap{width:260px;color:#9ab}</style></head>
+<body><div id="box" style="width:600px;position:absolute;left:-9999px"></div><pre id="o">running</pre><div id="sheet"></div>
+<script type="module">
+// Court animation contact sheet: ?h=connecticut&a=south-carolina&lg=ncaa&n=14&skip=0&t=0.15,0.4,0.7,0.95&neutral=0
+// Steps a real game and renders each possession at the given fractions of its script.
+const q = new URLSearchParams(location.search), out = [];
+try {
+  const W = await import('./js/game/world.js'), S = await import('./js/game/season.js'), { Court } = await import('./js/ui/court.js');
+  const G = W.newGame({ seed: 3, coachName: 'T', mode: 'pick', team: q.get('h') || 'connecticut' });
+  const lg = q.get('lg') || 'ncaa', h = q.get('h') || (lg === 'ncaa' ? 'connecticut' : 'lva'), a = q.get('a') || (lg === 'ncaa' ? 'south-carolina' : 'nyl');
+  const game = S.simGame(G, { id: 'sheet' + (q.get('seed') || 1), h, a, lg, neutral: q.get('neutral') === '1' ? 1 : 0 });
+  const court = new Court(); document.getElementById('box').appendChild(court.cv);
+  court.setGame({ home: G.teams[h], away: G.teams[a], lg, neutral: q.get('neutral') === '1', hasLogo: true, champ: () => q.get('champ') === '1' });
+  await new Promise(r => setTimeout(r, 400));   // logo image
+  const st = () => ({ on: [game.s[0].on.map(p => p.id), game.s[1].on.map(p => p.id)], tactics: [game.s[0].tactics, game.s[1].tactics], q: game.q, home: game.s[0].players.map(p => p.id), nums: Object.fromEntries([...game.s[0].players, ...game.s[1].players].map(p => [p.id, G.players[p.id]?.num ?? ''])) });
+  const ts = (q.get('t') || '0.15,0.4,0.7,0.95').split(',').map(Number), N = +(q.get('n') || 12), skip = +(q.get('skip') || 0);
+  const sheet = document.getElementById('sheet'); if (q.get('big')) { document.body.style.setProperty('--iw', '740px'); document.getElementById('box').style.width = '1100px'; }
+  const shot = (evs, label) => {
+    court.play(evs, st(), 1e9); const S2 = court.script;
+    const row = document.createElement('div'); row.className = 'row2';
+    const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = label; row.appendChild(cap);
+    for (const t of ts) { court.draw(t); const im = document.createElement('img'); im.src = court.cv.toDataURL(); row.appendChild(im); }
+    court.script = S2; court.finish(); sheet.appendChild(row);
+  };
+  shot(game.ev.slice(), 'tip-off');
+  let k = 0, bad = 0;
+  while (!game.done && k < N + skip) {
+    const evs = game.step();
+    if (k >= skip) shot(evs, evs.filter(e => e.type !== 'sub').map(e => e.text).join(' | '));
+    k++;
+  }
+  // fuzz: play the rest of the game through the script builder looking for NaN positions
+  while (!game.done) { const evs = game.step(); court.play(evs, st(), 1e9); for (const t of [0.3, 0.8, 1]) { court.draw(t); if ((court.lastPeople || []).some(p => !isFinite(p.x) || !isFinite(p.y))) bad++; } court.finish(); }
+  out.push(`ok, bad frames ${bad}, final ${game.s[0].score}-${game.s[1].score}`);
+} catch (e) { out.push('ERR ' + e.stack); }
+document.getElementById('o').textContent = out.join('\n');
+</script></body></html>

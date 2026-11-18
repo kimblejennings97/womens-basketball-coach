@@ -25,11 +25,12 @@ try {
     }
     for (const kv of (q.get('tab') || '').split(',').filter(Boolean)) { const [k, v] = kv.split(':'); D.ui.tab[k] = v; }
     if (q.get('offers')) { D.G.user.offers = ['tennessee', 'atl'].map(tid => ({ tid, yrs: 4, sal: 900000, until: D.G.day + 4 })); }
-    if (shot === 'live') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = 'turbo'; for (let i = 0; i < +(q.get('poss') || 60); i++) D.ui.live.game.step(); D.ui.live.ev = D.ui.live.game.ev.slice(); D.ui.live.paused = true; D.render(); }
+    if (shot === 'livecourt') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = q.get('speed') || 'fast'; await new Promise(r => setTimeout(r, +(q.get('ms') || 9000))); }
+    else if (shot === 'live') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = 'turbo'; for (let i = 0; i < +(q.get('poss') || 60); i++) D.ui.live.game.step(); D.ui.live.ev = D.ui.live.game.ev.slice(); D.ui.live.paused = true; D.render(); }
     else if (shot === 'livebox') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.paused = true; for (let i = 0; i < 100; i++) D.ui.live.game.step(); D.ui.live.tab = 'box'; D.render(); }
     else if (shot !== 'home') { const [s, a] = shot.split(':'); if (D.ACTS[s]) D.ACTS[s](a, { dataset: {} }); else D.ACTS.go(s); }
   }
 } catch (e) { errs.push(e.stack); }
 document.getElementById('o').textContent = errs.join('\n') || 'OK';
-document.querySelectorAll('script').forEach(s => s.remove());
+if (q.get('shot') !== 'livecourt') document.querySelectorAll('script').forEach(s => s.remove());
 </script></body></html>

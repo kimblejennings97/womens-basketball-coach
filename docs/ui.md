@@ -27,7 +27,7 @@ live in `js/ui/app.js`; clicks go through `data-act` (ACTS map), form changes th
 - Game menu: "Let my staff handle the offseason" (`G.user.auto`: AI makes recruiting, NIL, draft and FA decisions).
 - Box score: quarter line, both teams' player lines, team totals.
 - Pregame: scouting of both top fives, "Coach the game live" or "Sim the game".
-- Live game: scoreboard (team fouls, bonus, timeouts), play-by-play feed or live box score, speed (slow / normal / fast
+- Live game: animated court above the feed (docs/animation.md; "Court" toggle), scoreboard (team fouls, bonus, timeouts), play-by-play feed or live box score, speed (slow / normal / fast
   / turbo), pause, sim to end; auto-pause at the end of each period. Your bench: call timeout (taken at the next dead
   ball), manual-subs toggle (otherwise the auto rotation runs your plan), live tactic changes, click a player on the
   floor then one on the bench to sub (energy bar, minutes, points, fouls, OVR).
