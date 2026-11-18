@@ -1,0 +1,4 @@
+dist/
+tools/cache/
+_*.html
+__pycache__/

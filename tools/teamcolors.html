@@ -1,0 +1,28 @@
+<!doctype html><meta charset="utf-8"><body><pre id="o">running</pre>
+<script type="module">
+// Pull two team colours out of each logo (most common saturated colours, ignoring white/black/transparent).
+// Run headless with --dump-dom; tools/apply_colors.py writes the result into tools/colors.json.
+import { TEAMS } from '../js/data/real.js';
+const out = {};
+const load = src => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+for (const t of TEAMS) {
+  const im = await load('../' + t.logo); if (!im) continue;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 64, 64);
+  const d = x.getImageData(0, 0, 64, 64).data, bins = {};
+  for (let i = 0; i < d.length; i += 4) {
+    const [r, g, b, a] = [d[i], d[i + 1], d[i + 2], d[i + 3]]; if (a < 200) continue;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mx > 235 && mn > 225) continue;            // white
+    const k = [r >> 4, g >> 4, b >> 4].join(',');
+    (bins[k] ||= { n: 0, r: 0, g: 0, b: 0, sat: (mx - mn) / (mx || 1), dark: mx < 40 }).n++;
+    bins[k].r += r; bins[k].g += g; bins[k].b += b;
+  }
+  const L = Object.values(bins).map(v => ({ ...v, w: v.n * (v.dark ? 0.35 : 0.6 + v.sat) })).sort((a, b) => b.w - a.w);
+  const hex = v => '#' + [v.r / v.n, v.g / v.n, v.b / v.n].map(q => Math.round(q).toString(16).padStart(2, '0')).join('');
+  const dist = (a, b) => Math.abs(a.r / a.n - b.r / b.n) + Math.abs(a.g / a.n - b.g / b.n) + Math.abs(a.b / a.n - b.b / b.n);
+  if (!L.length) continue;
+  const c1 = L[0], c2 = L.find(v => dist(v, c1) > 120) || null;
+  out[t.id] = [hex(c1), c2 ? hex(c2) : null];
+}
+document.getElementById('o').textContent = JSON.stringify(out);
+</script>
