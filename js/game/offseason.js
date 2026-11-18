@@ -233,7 +233,8 @@ export const MAX_OFF_ROSTER = 14;   // offseason roster max (cut to 12 before th
 export function userSign(G, pid, sal, yrs) {
   const t = G.teams[ut(G)], p = G.players[pid];
   if (!p || !G.fa.includes(pid)) return 'Not a free agent.';
-  if (t.roster.length >= MAX_OFF_ROSTER) return 'Roster is full.';
+  const cal = calendar(G.season), inSeason = G.day >= cal.wnbaCuts && !(G.wpo && G.wpo.champ);
+  if (t.roster.length >= (inSeason ? W.MAX_ROSTER.wnba : MAX_OFF_ROSTER)) return `Roster is full (${inSeason ? W.MAX_ROSTER.wnba + ' in season' : MAX_OFF_ROSTER + ' in the offseason'}): release someone first.`;
   if (sal < askSalary(p)) return `${p.name} wants at least ${askSalary(p).toLocaleString()}.`;
   if (sal > capRoom(G, t) && sal > W.SAL.min) return 'Not enough cap room (minimum contracts are always allowed).';
   sign(G, t, p, sal, yrs); news(G, `${p.name} signs with ${t.name}: $${Math.round(sal / 1000)}K for ${yrs} year${yrs > 1 ? 's' : ''}.`, 1);
@@ -481,7 +482,7 @@ function develop(G, rng) {
       const last = p.hist?.[p.hist.length - 1], mpg = last && last.season === G.season && last.st.g ? last.st.sec / 60 / last.st.g : 0;
       // closes a share of the gap to potential that grows as eligibility runs out (most of it by the end of year 5)
       const left = { FR: 4, SO: 3.5, JR: 3, SR: 2.5, GR: 2 }[p.cls] || 3;
-      d = clamp(((p.pot ?? before + 2) - before) * (0.68 + 0.02 * (dev - 10)) / left + 0.1 * Math.min(1, mpg / 30) + rng.gauss() * 0.4, -0.6, 2.5);
+      d = clamp(((p.pot ?? before + 2) - before) * (0.62 + 0.02 * (dev - 10)) / left + 0.1 * Math.min(1, mpg / 30) + rng.gauss() * 0.4, -0.6, 2.5);
     } else {
       const a = p.age;
       d = a <= 22 ? 0.3 + Math.max(0, (p.pot ?? before) - before) * 0.08 : a <= 25 ? 0.25 : a <= 28 ? 0.1 : a <= 30 ? 0 : a <= 32 ? -0.25 : a <= 34 ? -0.5 : -0.9;

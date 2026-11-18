@@ -51,7 +51,7 @@ export function genClass(G, rng) {
   const raw = [];
   for (let i = 0; i < 1500; i++) {
     const u = i / 1500;
-    const lvl = 11 - 6 * Math.pow(u, 0.5) + rng.gauss() * 0.45;
+    const lvl = 10.6 - 6 * Math.pow(u, 0.5) + rng.gauss() * 0.45;
     const p = genPlayer(rng, { level: lvl, league: 'ncaa', cls: 'FR', age: 18 });
     p.pot = clamp(Math.round(ovr(p) + 1.8 + (1 - u) ** 2 * 3.8 + rng.gauss() * 1.3), 1, 20);
     raw.push(p);
@@ -212,11 +212,16 @@ export function joinClass(G) {
 
 // ---------------------------------------------------------------- transfer portal
 // Chance a player enters the portal this spring.
+// Minutes per game this college season (after the season ends the stats live in the history).
+export function seasonMpg(G, p) {
+  const st = p.st && p.st.g ? p.st : p.hist?.find(h => h.season === G.season && h.league === 'ncaa')?.st;
+  return st && st.g ? st.sec / 60 / st.g : 0;
+}
 export function portalRisk(G, p, t) {
   if (!p || p.cls === 'GR' || p.leaving) return 0;
-  let r = 0.03;
+  let r = 0.05;
   const ps = t.roster.map(id => G.players[id]).filter(q => q && !q.leaving).sort((a, b) => ovr(b) - ovr(a));
-  const rank = ps.indexOf(p), mpg = p.st && p.st.g ? p.st.sec / 60 / p.st.g : 0;
+  const rank = ps.indexOf(p), mpg = seasonMpg(G, p);
   if (mpg < 8) r += 0.16; else if (mpg < 15) r += 0.08;
   if (rank >= 0 && rank < 8 && mpg < 15) r += 0.1;
   const mv = marketValue(p);

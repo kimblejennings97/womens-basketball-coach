@@ -195,6 +195,9 @@ def wnba():
             by = r.get('birth_date_csk', '')
             roster[pid] = dict(id=pid, name=r.get('player', ''), num=r.get('number', ''), p=r.get('pos', ''), ht=num(r.get('height_csk')) or 73,
                                born=int(by.split('-')[0]) if by[:4].isdigit() else None, exp=int(num(r.get('exp_csk') or r.get('exp'))), college=r.get('college', ''), team=t['id'])
+            q = roster[pid]
+            if not q['name'] and q['num'] and not q['num'].isdigit():   # no jersey number: the name sits in the first cell
+                q['name'], q['num'] = q['num'], ''
             t['roster'].append(pid)
         for r in table(th, 'totals'):
             stats[r['_id']].append(dict(season=2026, team=t['id'], srs=net, **statrow(r)))

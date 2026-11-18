@@ -60,6 +60,11 @@ export function newGame(opts) {
       for (const id of t.roster) G.players[id].contract ||= genContract(rng, G.players[id], G.season);
     }
     for (const id of t.roster) if (!G.players[id].num) G.players[id].num = String(rng.int(0, 55));
+    // generated contracts: scale the non-minimum salaries so every team starts just under the cap
+    if (t.league === 'wnba') {
+      const cs = t.roster.map(id => G.players[id].contract), pay = cs.reduce((s, c) => s + c.sal, 0), target = SAL.cap * 0.96;
+      if (pay > target) { const extra = cs.reduce((s, c) => s + c.sal - SAL.min, 0), k = Math.max(0, 1 - (pay - target) / extra); for (const c of cs) c.sal = Math.round((SAL.min + (c.sal - SAL.min) * k) / 1000) * 1000; }
+    }
   }
   // coaches
   for (const t of TEAMS) {

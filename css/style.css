@@ -117,3 +117,5 @@ input[type=text], input[type=search] { background: var(--panel2); color: var(--t
 .mins { width: 52px; }
 @media (max-width: 900px) { nav { display: flex; flex-wrap: wrap; padding: 4px; } nav a { padding: 6px 10px; } nav hr { display: none; } }
 .tbl.dense td.l, .tbl.dense th.l { text-align: left; }
+button.small { padding: 3px 9px; font-size: 12px; }
+.stars { color: var(--gold); letter-spacing: -1px; white-space: nowrap; }
