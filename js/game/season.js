@@ -6,6 +6,7 @@ import { calendar, fmtDay } from './sched.js';
 import { gameTeam, teamStrength, userTeam, emptyRec } from './world.js';
 import * as OF from './offseason.js';
 import * as RC from './recruit.js';
+import * as LG from './legacy.js';
 
 export const STAT_KEYS = ['g', 'gs', 'sec', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'];
 const BRACKET16 = [1, 16, 8, 9, 5, 12, 4, 13, 6, 11, 3, 14, 7, 10, 2, 15];
@@ -51,6 +52,7 @@ export function applyResult(G, g, res, keepBox = false) {
     }
   });
   injuries(G, g, res);
+  LG.gameRecords(G, g, res);
   // what we keep per game: full box for the user's games and the NCAA tournament / playoffs, else just the top scorers
   const ut = userTeam(G);
   if (keepBox || g.h === ut || g.a === ut || g.kind === 'ncaa' || g.kind === 'po') g.box = compactBox(res);

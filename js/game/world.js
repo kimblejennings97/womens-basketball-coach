@@ -35,6 +35,12 @@ export function newGame(opts) {
     const r = {}; RATING_KEYS.forEach((k, i) => { r[k] = p.r[i]; });
     const q = { ...p, r, real: 1, inj: null, st: {}, hist: [] };
     if (p.cls && !CLASS_SHORT[p.cls]) q.cls = 'JR';
+    if (q.league === 'wnba' || p.exp != null) {
+      // the data is the 2026 season; the game starts in 2027: one more year of experience. Hall of Fame credit for the
+      // career before the save: (level - 11) per season, x0.55, up to 12 seasons.
+      q.exp = (p.exp ?? 0) + 1;
+      q.pre = Math.round(Math.max(0, (p.L ?? 12) - 11) * Math.min(p.exp ?? 0, 12) * 0.55 * 10) / 10;
+    }
     delete q.L;
     G.players[id] = q;
   }

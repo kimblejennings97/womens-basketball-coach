@@ -6,8 +6,7 @@ Build order agreed with the user (2026-11-17):
 3. Screens. **Done** (docs/ui.md).
 4. Season loop for both leagues, recruiting, portal, draft, contracts + trades, coaching carousel. **Done**
    (docs/season.md, docs/offseason.md).
-5. Stats, records, Hall of Fame. Season stats + player / team / coach histories are kept; record books and the Hall of
-   Fame are next (retired players keep their stat history only if notable: see recruit.js `retire`).
+5. Stats, records, Hall of Fame. **Done** (docs/legacy.md).
 6. Animation.
 
 ## Open items / ideas

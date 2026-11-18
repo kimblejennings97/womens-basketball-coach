@@ -72,6 +72,16 @@ try {
     if (r.stop === 'wnba-champion') { const tr = Object.values(G.players).filter(p => p.league === 'ncaa' && p.from).length; log(`-- ${G.season} WNBA champion ${G.teams[G.wpo.champ].name}; transfers landed ${tr}; ` + G.news.filter(n => /portal opens|carousel|lottery/.test(n.text)).slice(-4).map(n => n.text).join(' | ')); }
     if (r.stop === 'max') break;
   }
+  { const LG = await import('./js/game/legacy.js');
+    for (const lg of ['ncaa', 'wnba']) {
+      const A = G.awards.filter(a => LG.AWARDS[a.k][0] === lg && ['npoy', 'mvp', 'nfoy', 'roy', 'nmop', 'fmvp', 'ncoy', 'wcoy'].includes(a.k));
+      log(`awards ${lg}: ` + A.map(a => `${a.s} ${a.k} ${(G.players[a.id] || G.coaches[a.id])?.name} (${a.v})`).join(' | '));
+      const R = G.records[lg]; log(`records ${lg}: game pts ${R.game.pts?.[0]?.slice(0, 3)} reb ${R.game.reb?.[0]?.slice(0, 3)} ast ${R.game.ast?.[0]?.slice(0, 3)} | season ppg ${R.avg.pts?.[0]?.slice(0, 3)} | team wins ${R.tseason.w?.[0]?.slice(0, 3)}`);
+      log(`career ${lg} pts: ` + LG.careerLeaders(G, lg, 'pts', 5).map(x => `${x.p.name} ${x.v}`).join(', '));
+    }
+    log('awards total ' + G.awards.length + ' HOF: ' + G.hof.map(h => `${h.s} ${(G.players[h.id] || G.coaches[h.id])?.name} ${h.score}`).join(', '));
+    const top = Object.values(G.players).filter(p => p.league === 'gone' && p.left).map(p => [p.name, LG.hofScore(G, p)]).sort((a, b) => b[1] - a[1]).slice(0, 6); log('top HOF scores among retired: ' + JSON.stringify(top));
+    log('records size ' + JSON.stringify(G.records).length + ' awards size ' + JSON.stringify(G.awards).length); }
   log(`sim ${(performance.now() - t0) / 1000 | 0}s stops: ${stops.filter(s => !s.startsWith('null')).join(' ')}`);
   const G2 = SV.unpackGame(SV.packGame(G)); log('pack roundtrip players ' + Object.keys(G2.players).length);
 } catch (e) { log('ERR ' + e.stack); }

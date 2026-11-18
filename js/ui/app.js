@@ -9,6 +9,7 @@ import { calendar, fmtDay, seasonLabel } from '../game/sched.js';
 import { initSaves, loadLast, loadSlot, saveGame, deleteSlot, listSaves } from '../game/saves.js';
 import * as OF from '../game/offseason.js';
 import * as RC from '../game/recruit.js';
+import * as LG from '../game/legacy.js';
 
 const $app = document.getElementById('app');
 await initSaves();
@@ -54,10 +55,10 @@ function render() {
   if (ui.screen === 'live' && ui.live) { $app.innerHTML = topbar() + `<div class="content">${renderLive()}</div>`; return; }
   const lgNav = me().league === 'ncaa' ? [['recruit', 'Recruiting']] : [['fa', 'Free agency'], ['trade', 'Trades']];
   const nOff = (G.user.offers || []).length;
-  const nav = [['home', 'Home'], ['roster', 'Roster'], ['tactics', 'Tactics'], ['schedule', 'Schedule'], ['standings', 'Standings'], ['rankings', 'Rankings'], ['bracket', 'Tournaments'], ['stats', 'Stats'], ['teams', 'Teams'], ...lgNav, ['draft', 'Draft'], ['staff', 'Staff'], ...(nOff ? [['jobs', `Job offers (${nOff})`]] : [])];
+  const nav = [['home', 'Home'], ['roster', 'Roster'], ['tactics', 'Tactics'], ['schedule', 'Schedule'], ['standings', 'Standings'], ['rankings', 'Rankings'], ['bracket', 'Tournaments'], ['stats', 'Stats'], ['teams', 'Teams'], ...lgNav, ['draft', 'Draft'], ['history', 'History'], ['staff', 'Staff'], ...(nOff ? [['jobs', `Job offers (${nOff})`]] : [])];
   const body = ({ home: renderHome, roster: renderRoster, tactics: renderTactics, schedule: renderSchedule, standings: renderStandings, rankings: renderRankings, bracket: renderBracket,
     stats: renderStats, teams: renderTeams, staff: renderStaff, team: renderTeam, player: renderPlayer, coach: renderCoach, box: renderBox, pregame: renderPregame, menu: renderMenu,
-    recruit: renderRecruit, draft: renderDraft, fa: renderFA, trade: renderTrade, jobs: renderJobs }[ui.screen] || renderHome)();
+    recruit: renderRecruit, draft: renderDraft, history: renderHistory, fa: renderFA, trade: renderTrade, jobs: renderJobs }[ui.screen] || renderHome)();
   $app.innerHTML = topbar() + `<div class="layout"><nav>${nav.map(([k, l]) => `<a class="${ui.screen === k ? 'on' : ''}" data-act="go" data-v="${k}">${l}</a>`).join('')}<hr><a data-act="go" data-v="menu" class="off2">Game menu</a></nav><div class="content">${ui.msg ? `<div class="card">${ui.msg}</div>` : ''}${body}</div></div>`;
 }
 function topbar() {
@@ -243,16 +244,24 @@ function renderPlayer() {
   const bio = p.league === 'gone' ? 'Retired / left the game world' : p.league !== 'wnba' && p.cls ? `${W.CLASS_NAMES[p.cls] || p.cls || ''} · ${esc(p.home || '')}${p.hs ? ' · ' + esc(p.hs) : ''}` : `Age ${p.age}${p.exp != null ? ` · ${p.exp} yrs exp` : ''}${p.college ? ' · ' + esc(p.college) : ''}`;
   const extra = [p.rec ? `${stars(p.rec.stars)} ${p.rec.portal ? `Transfer portal (from ${G.teams[p.rec.from] ? tn(p.rec.from, 14) : '?'})` : `Recruit No. ${p.rec.rank}`}${p.rec.commit ? ` · committed to ${tn(p.rec.commit, 14)}` : ` · ${p.rec.off.length} offers`}` : '',
     p.stars ? `${stars(p.stars)} recruit (No. ${p.rk})` : '', p.draft ? `Drafted ${p.draft.season}, round ${p.draft.rd}, No. ${p.draft.pick} by ${tn(p.draft.team, 14)}` : '', p.league === 'ncaa' && p.nil ? `NIL deal ${K(p.nil)}/yr` : ''].filter(Boolean).join(' · ');
-  if (!p.r) return `<div class="card"><div class="hero"><div><h1>${esc(p.name)}</h1><div class="sub">${p.pos} · ${bio}</div>${extra ? `<div class="sub">${extra}</div>` : ''}</div></div></div>` + careerCard(p);
+  const badges = honors(p);
+  if (!p.r) return `<div class="card"><div class="hero"><div><h1>${esc(p.name)}${p.hof ? ' <span class="pill hof">Hall of Fame</span>' : ''}</h1><div class="sub">${p.pos} · ${bio}</div>${extra ? `<div class="sub">${extra}</div>` : ''}${badges}</div></div></div>` + careerCard(p);
   const prev = p.prev ? `<p class="hint">Last season (real stats): ${p.prev.g} games at ${G.teams[p.prev.team] ? tn(p.prev.team, 16) : esc(p.prev.team)}, ${f1(p.prev.pts / Math.max(1, p.prev.g))} pts, ${f1(p.prev.trb / Math.max(1, p.prev.g))} reb, ${f1(p.prev.ast / Math.max(1, p.prev.g))} ast in ${f1(p.prev.mp / Math.max(1, p.prev.g))} min.</p>` : '';
   const line = s => `<td class="num">${s.g}</td><td class="num">${s.gs}</td><td class="num">${f1(s.sec / 60 / s.g)}</td><td class="num">${f1(s.pts / s.g)}</td><td class="num">${f1((s.orb + s.drb) / s.g)}</td><td class="num">${f1(s.ast / s.g)}</td><td class="num">${f1(s.stl / s.g)}</td><td class="num">${f1(s.blk / s.g)}</td><td class="num">${f1(s.tov / s.g)}</td><td class="num">${pctS(s.fgm, s.fga)}</td><td class="num">${pctS(s.tpm, s.tpa)}</td><td class="num">${pctS(s.ftm, s.fta)}</td>`;
   const hdr = '<tr><th>Season</th><th>Team</th><th class="num">G</th><th class="num">GS</th><th class="num">MIN</th><th class="num">PTS</th><th class="num">REB</th><th class="num">AST</th><th class="num">STL</th><th class="num">BLK</th><th class="num">TO</th><th class="num">FG%</th><th class="num">3P%</th><th class="num">FT%</th></tr>';
   const rows = (p.hist || []).map(h => `<tr><td>${h.league === 'ncaa' ? seasonLabel(h.season) : h.season}</td><td>${G.teams[h.team] ? tn(h.team, 16) : esc(h.team)}</td>${line(h.st)}</tr>`).join('') + (st ? `<tr><td>${p.league === 'ncaa' ? seasonLabel(G.season) : G.season}</td><td>${t ? tn(t.id, 16) : '-'}</td>${line(st)}</tr>` : '');
-  return `<div class="card"><div class="hero">${t ? logo(t, 64) : ''}<div><h1>${esc(p.name)} <small class="muted">#${esc(p.num ?? '')}</small></h1><div class="sub">${p.pos} · ${fmtHt(p.ht)} · ${t ? tn(t.id, 16) : 'Free agent'}</div><div class="sub">${bio}</div>
-      ${extra ? `<div class="sub">${extra}</div>` : ''}<div class="sub">Overall ${rt(ovr(p))} · Potential ${rt(p.pot)}${p.contract ? ` · Contract ${money(p.contract.sal)} through ${p.contract.thru}` : ''}${p.inj ? ` · <span class="neg">Injured: ${esc(p.inj.name)}, back ${fmtDay(p.inj.until)}</span>` : ''}</div></div></div>${prev}</div>
+  return `<div class="card"><div class="hero">${t ? logo(t, 64) : ''}<div><h1>${esc(p.name)} <small class="muted">#${esc(p.num ?? '')}</small>${p.hof ? ' <span class="pill hof">Hall of Fame</span>' : ''}</h1><div class="sub">${p.pos} · ${fmtHt(p.ht)} · ${t ? tn(t.id, 16) : 'Free agent'}</div><div class="sub">${bio}</div>
+      ${extra ? `<div class="sub">${extra}</div>` : ''}${badges}<div class="sub">Overall ${rt(ovr(p))} · Potential ${rt(p.pot)}${p.contract ? ` · Contract ${money(p.contract.sal)} through ${p.contract.thru}` : ''}${p.inj ? ` · <span class="neg">Injured: ${esc(p.inj.name)}, back ${fmtDay(p.inj.until)}</span>` : ''}</div></div></div>${prev}</div>
     <div class="card"><h2>Ratings</h2><div class="rgroups">${RATING_GROUPS.map(([g, ks]) => `<div><h3>${g}</h3>${ks.map(k => `<div class="attr"><span>${RATING_NAMES[k]}</span><div class="bar"><i class="${tier(p.r[k])}" style="width:${p.r[k] * 5}%"></i></div><b>${p.r[k]}</b></div>`).join('')}</div>`).join('')}</div></div>
     ${gameLog(p)}
     <div class="card"><h2>Stats</h2>${rows ? `<div style="overflow-x:auto"><table class="tbl dense">${hdr}${rows}</table></div>` : '<p class="muted">No games played yet in this game.</p>'}${p.hi ? `<p class="hint">Career high: ${p.hi} points</p>` : ''}</div>`;
+}
+// Award badges (newest first), grouped: "2x All-American, first team (2028, 2029)".
+function honors(x) {
+  if (!x.aw?.length) return '';
+  const by = {}; for (const [s, k] of x.aw) (by[k] ||= []).push(s);
+  const order = Object.keys(LG.AWARDS);
+  return `<div class="badges">${Object.entries(by).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])).map(([k, ss]) => `<span class="badge-aw">${ss.length > 1 ? ss.length + 'x ' : ''}${esc(LG.AWARDS[k][1])} <small>${ss.map(y => LG.AWARDS[k][0] === 'ncaa' ? seasonLabel(y) : y).join(', ')}</small></span>`).join('')}</div>`;
 }
 function careerCard(p) {
   const line = s => `<td class="num">${s.g}</td><td class="num">${f1(s.sec / 60 / s.g)}</td><td class="num">${f1(s.pts / s.g)}</td><td class="num">${f1((s.orb + s.drb) / s.g)}</td><td class="num">${f1(s.ast / s.g)}</td><td class="num">${pctS(s.fgm, s.fga)}</td>`;
@@ -274,7 +283,7 @@ function renderCoach() {
   const c = G.coaches[ui.arg]; if (!c) return '';
   const t = c.team && G.teams[c.team];
   return `<div class="card"><div class="hero">${t ? logo(t, 64) : ''}<div><h1>${esc(c.name)}</h1><div class="sub">${c.asst ? W.ASST_ROLES[c.asst] : 'Head coach'}${t ? ' · ' + tn(t.id, 16) : ' · unemployed'} · age ${c.age} · reputation ${rt(c.rep)}</div>
-      ${c.contract ? `<div class="sub">Contract ${money(c.contract.sal)}/yr through ${seasonLabel(c.contract.thru)}</div>` : ''}<div class="sub">Record since the start of this save: ${c.career.w}-${c.career.l}${c.career.titles ? ` · ${c.career.titles} title${c.career.titles > 1 ? 's' : ''}` : ''}</div></div></div></div>
+      ${c.contract ? `<div class="sub">Contract ${money(c.contract.sal)}/yr through ${seasonLabel(c.contract.thru)}</div>` : ''}<div class="sub">Record since the start of this save: ${c.career.w}-${c.career.l}${c.career.titles ? ` · ${c.career.titles} title${c.career.titles > 1 ? 's' : ''}` : ''}${c.hof ? ' <span class="pill hof">Hall of Fame</span>' : ''}</div>${honors(c)}</div></div></div>
     <div class="card"><h2>Ratings</h2><div class="rgroups">${W.COACH_KEYS.map(k => `<div class="attr"><span>${W.COACH_NAMES[k]}</span><div class="bar"><i class="${tier(c.r[k])}" style="width:${c.r[k] * 5}%"></i></div><b>${Math.round(c.r[k])}</b></div>`).join('')}</div></div>
     ${c.hist.length ? `<div class="card"><h2>Career</h2><table class="tbl dense"><tr><th>Season</th><th>Team</th><th class="num">W-L</th><th>Finish</th></tr>${c.hist.slice().reverse().map(h => `<tr><td>${h.lg === 'wnba' ? h.season : seasonLabel(h.season)}</td><td>${G.teams[h.team] ? tn(h.team, 16) : ''}</td><td class="num">${h.w != null ? `${h.w}-${h.l}` : ''}</td><td>${h.note ? esc(h.note) : esc(OF.finishLabel(h.lg, h.f))}</td></tr>`).join('')}</table></div>` : ''}`;
 }
@@ -592,6 +601,59 @@ function renderJobs() {
   return `<div class="card"><h2>Job offers</h2><p>${esc(c.name)} · reputation ${rt(c.rep)}${t ? ` · currently ${esc(t.name)} (contract through ${c.contract ? seasonLabel(c.contract.thru) : '-'})` : ''}</p>
     ${offers.length ? offers.map(o => { const x = G.teams[o.tid]; return `<div class="offer">${logo(x, 44)}<div style="flex:1"><b>${esc(x.name)}</b><div class="muted">${x.league.toUpperCase()} · ${esc(x.conf)} · prestige ${Math.round(x.prestige)}/20 · last season ${x.hist?.length ? `${x.hist[x.hist.length - 1].w}-${x.hist[x.hist.length - 1].l}` : '-'}</div><div class="muted">${o.yrs}-year contract · ${money(o.sal)}/yr · offer expires ${fmtDay(o.until)}</div></div><button data-act="jaccept" data-v="${o.tid}">Accept</button></div>`; }).join('') : '<p class="muted">No offers right now. Openings come after each league\'s season (college in April, WNBA in October); teams make offers when your reputation is high enough.</p>'}
     ${offers.length && !G.user.fired ? '<div class="row" style="margin-top:10px"><button class="secondary" data-act="jdecline">Stay where I am</button></div>' : ''}</div>`;
+}
+
+// ---------------------------------------------------------------- history: awards, records, career leaders, Hall of Fame
+function renderHistory() {
+  const tab = ui.tab.hi || 'awards', lg = ui.tab.hlg || me().league;
+  const lgTabs = `<div class="tabs">${['ncaa', 'wnba'].map(l => `<button class="${lg === l ? 'on' : ''}" data-act="tab" data-k="hlg" data-v="${l}">${l.toUpperCase()}</button>`).join('')}</div>`;
+  const tabs = `<div class="tabs">${[['awards', 'Awards'], ['records', 'Record book'], ['career', 'Career leaders'], ['hof', 'Hall of Fame']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-act="tab" data-k="hi" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const yr = y => (lg === 'ncaa' ? seasonLabel(y) : String(y));
+  const who = (id, coach) => coach ? cl(id) : pl(id);
+  let body = '';
+  if (tab === 'awards') {
+    const seasons = [...new Set(G.awards.filter(a => LG.AWARDS[a.k][0] === lg).map(a => a.s))].sort((a, b) => b - a);
+    if (!seasons.length) body = `<p class="muted">No ${lg.toUpperCase()} awards yet: they are handed out when the ${lg === 'ncaa' ? 'college season ends (April)' : 'WNBA Finals end (October)'}.</p>`;
+    else {
+      const sy = seasons.includes(+ui.tab.hs) ? +ui.tab.hs : seasons[0];
+      const A = G.awards.filter(a => a.s === sy && LG.AWARDS[a.k][0] === lg);
+      const rows = k => A.filter(a => a.k === k).map(a => `<tr><td>${who(a.id, a.k.endsWith('coy'))}</td><td>${tn(a.t, 16)}</td><td class="muted">${esc(a.v)}</td></tr>`).join('');
+      const keys = Object.keys(LG.AWARDS).filter(k => LG.AWARDS[k][0] === lg && k !== 'ncpoy');
+      body = `<div class="row"><select data-ch="tabsel" data-k="hs">${seasons.map(y => `<option value="${y}" ${y === sy ? 'selected' : ''}>${yr(y)}</option>`).join('')}</select></div>
+        <div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(420px,1fr))">${keys.filter(k => A.some(a => a.k === k)).map(k => `<div><h3>${esc(LG.AWARDS[k][1])}</h3><table class="tbl dense">${rows(k)}</table></div>`).join('')}
+        ${lg === 'ncaa' && A.some(a => a.k === 'ncpoy') ? `<div><h3>Conference Players of the Year</h3><table class="tbl dense">${rows('ncpoy')}</table></div>` : ''}</div>`;
+    }
+  } else if (tab === 'records') {
+    const R = (G.records || {})[lg] || { game: {}, season: {}, avg: {}, tgame: {}, tseason: {} };
+    const list = (L, fmt) => L && L.length ? `<table class="tbl dense">${L.map((e, i) => `<tr><td>${i + 1}</td>${fmt(e)}</tr>`).join('')}</table>` : '<p class="muted">-</p>';
+    const ab = id => (G.teams[id] ? esc(G.teams[id].abbr || teamName(G.teams[id])) : '');
+    const pg = e => `<td class="num"><b>${e[0]}</b></td><td>${pl(e[1], e[2])}</td><td class="muted">${ab(e[3])} v ${ab(e[4])}</td><td class="muted">${new Date(e[6] * 864e5).toISOString().slice(0, 10)}</td>`;
+    const ps = e => `<td class="num"><b>${e[0]}</b></td><td>${pl(e[1], e[2])}</td><td>${tn(e[3], 14)}</td><td class="muted">${yr(e[4])}</td>`;
+    const grp = (title, obj, fmt, keys = LG.REC_KEYS) => `<h2>${title}</h2><div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(360px,1fr))">${keys.filter(([k]) => obj[k]).map(([k, l]) => `<div><h3>${l}</h3>${list(obj[k], fmt)}</div>`).join('') || '<p class="muted">Nothing recorded yet.</p>'}</div>`;
+    body = grp('Single game', R.game, pg) + grp('Season totals', R.season, ps) + grp('Season averages (per game)', R.avg, ps, [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists']])
+      + `<h2>Team</h2><div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(360px,1fr))">
+        <div><h3>Points in a game</h3>${list(R.tgame.pts, e => `<td class="num"><b>${e[0]}</b></td><td>${tn(e[1], 14)}</td><td class="muted">v ${ab(e[2])}, ${new Date(e[4] * 864e5).toISOString().slice(0, 10)}</td>`)}</div>
+        <div><h3>Biggest win</h3>${list(R.tgame.margin, e => `<td class="num"><b>${e[0]}</b></td><td>${tn(e[1], 14)}</td><td class="muted">${e[5]}-${e[6]} v ${ab(e[2])}</td>`)}</div>
+        <div><h3>Wins in a season</h3>${list(R.tseason.w, e => `<td class="num"><b>${e[0]}</b></td><td>${tn(e[1], 14)}</td><td class="muted">${e[0]}-${e[3]}, ${yr(e[2])}</td>`)}</div>
+        <div><h3>Points per game, season</h3>${list(R.tseason.ppg, e => `<td class="num"><b>${e[0]}</b></td><td>${tn(e[1], 14)}</td><td class="muted">${yr(e[2])}</td>`)}</div></div>
+      <p class="hint">Records since the start of this save (single-game records count every game; season records are written when the season ends).</p>`;
+  } else if (tab === 'career') {
+    const keys = [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['stl', 'Steals'], ['blk', 'Blocks'], ['tpm', '3-pointers made'], ['g', 'Games'], ['ppg', `Points per game (${lg === 'ncaa' ? 60 : 80}+ games)`]];
+    body = `<div class="rgroups" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${keys.map(([k, l]) => `<div><h3>${l}</h3><table class="tbl dense">${LG.careerLeaders(G, lg, k).map((x, i) => `<tr><td>${i + 1}</td><td>${pl(x.p.id)}${x.p.hof ? ' <span class="pill hof">HOF</span>' : ''}</td><td class="muted">${x.p.league === 'gone' ? 'retired' : x.p.team ? esc(teamName(G.teams[x.p.team])) : ''}</td><td class="num">${k === 'ppg' ? f1(x.v) : x.v}</td></tr>`).join('') || '<tr><td class="muted">No games yet</td></tr>'}</table></div>`).join('')}
+      <div><h3>Coaches: wins</h3><table class="tbl dense">${LG.coachLeaders(G, 'w').map((x, i) => `<tr><td>${i + 1}</td><td>${cl(x.c.id)}</td><td class="num">${x.v}</td></tr>`).join('')}</table></div>
+      <div><h3>Coaches: titles</h3><table class="tbl dense">${LG.coachLeaders(G, 'titles').map((x, i) => `<tr><td>${i + 1}</td><td>${cl(x.c.id)}</td><td class="num">${x.v}</td></tr>`).join('') || '<tr><td class="muted">None yet</td></tr>'}</table></div></div>
+      <p class="hint">Careers count games played in this save (both leagues are listed separately; coaches across both).</p>`;
+  } else {
+    const H = (G.hof || []).slice().reverse();
+    body = H.length ? `<table class="tbl dense"><tr><th>Class</th><th class="l">Name</th><th></th><th class="l">Résumé</th></tr>${H.map(h => {
+      const x = h.kind === 'coach' ? G.coaches[h.id] : G.players[h.id]; if (!x) return '';
+      const aw = {}; for (const [, k] of x.aw || []) aw[k] = (aw[k] || 0) + 1;
+      const res = Object.entries(aw).map(([k, n]) => `${n > 1 ? n + 'x ' : ''}${LG.AWARDS[k][1]}`).join(', ');
+      const car = h.kind === 'coach' ? `${x.career.w}-${x.career.l}, ${x.career.titles} titles` : ['ncaa', 'wnba'].map(l => { const t = LG.careerTotals(x, l); return t.g ? `${l.toUpperCase()} ${t.g} g, ${t.pts} pts` : ''; }).filter(Boolean).join(' · ');
+      return `<tr><td>${h.s}</td><td class="l">${h.kind === 'coach' ? cl(h.id) : pl(h.id)}</td><td class="muted">${h.kind}</td><td class="l muted">${esc(car)}${res ? ' · ' + esc(res) : ''}</td></tr>`;
+    }).join('')}</table>` : `<p class="muted">Nobody has been inducted yet. Players become eligible two seasons after their careers end (awards, titles and career production count; bar ${LG.HOF_BAR.player} points), coaches once retired. Careers start with this save, so the first classes come after a few seasons.</p>`;
+  }
+  return `<div class="card"><h2>History</h2>${tabs}${tab !== 'hof' ? lgTabs : ''}${body}</div>`;
 }
 
 // ---------------------------------------------------------------- game menu

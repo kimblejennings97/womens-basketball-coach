@@ -8,6 +8,7 @@ import { genPlayer, randomName as randomCoachName } from '../data/gen.js';
 import * as W from './world.js';
 import { calendar, buildNcaaSchedule, buildWnbaSchedule } from './sched.js';
 import * as RC from './recruit.js';
+import * as LG from './legacy.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const r1 = x => Math.round(x * 10) / 10;
@@ -502,10 +503,11 @@ function develop(G, rng) {
 }
 
 // ---------------------------------------------------------------- event hooks (called from season.js dayEvents)
+const perfOf = G => t => { const h = t.hist?.[t.hist.length - 1]; return h && h.season === G.season ? seasonPerf(t, h) : null; };
 export function collegeOffseason(G, d, pw) {
   G._pw = pw;
   const rng = rngFor(G, 'colOff');
-  archive(G, 'ncaa'); coachGrowth(G, 'ncaa'); prestigeUpdate(G, 'ncaa'); delete G._pw;
+  archive(G, 'ncaa'); coachGrowth(G, 'ncaa'); LG.seasonAwards(G, 'ncaa', perfOf(G)); prestigeUpdate(G, 'ncaa'); delete G._pw;
   departures(G, rng);
   G.colOff = G.season;
   const offers = carousel(G, 'ncaa', d);
@@ -514,7 +516,7 @@ export function collegeOffseason(G, d, pw) {
   return offers;
 }
 export function wnbaOffseason(G, d) {
-  archive(G, 'wnba'); coachGrowth(G, 'wnba'); prestigeUpdate(G, 'wnba');
+  archive(G, 'wnba'); coachGrowth(G, 'wnba'); LG.seasonAwards(G, 'wnba', perfOf(G)); prestigeUpdate(G, 'wnba');
   runLottery(G, t => t.rec, G.wpo?.seeds || standingsTop8(G), G.season + 1, rngFor(G, 'lottery'));
   G.wOff = G.season;
   return carousel(G, 'wnba', d);
@@ -587,5 +589,6 @@ export function rollover(G) {
   RC.genClass(G, rng); RC.precommit(G, rng);
   G.user.board = {}; G.user.cands = null;
   G.rolled = G.season;
+  LG.hallOfFame(G);
   news(G, `Welcome to the ${G.season - 1}-${String(G.season).slice(2)} season.`, 1);
 }

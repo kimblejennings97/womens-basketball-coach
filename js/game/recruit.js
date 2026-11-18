@@ -77,8 +77,8 @@ export function retire(G, p) {
   const pro = h.some(x => x.league === 'wnba'), col = h.filter(x => x.league === 'ncaa');
   const g = col.reduce((s, x) => s + x.st.g, 0), pts = col.reduce((s, x) => s + x.st.pts, 0);
   const star = col.some(x => x.st.g >= 10 && x.st.pts / x.st.g >= 15);
-  if (!pro && !star && !(g >= 60 && pts / g >= 8)) { delete G.players[p.id]; return; }
-  p.team = null; p.league = 'gone'; delete p.r; delete p.rec; delete p.contract; delete p.nil; delete p.askF; p.inj = null;
+  if (!pro && !star && !p.aw?.length && !(g >= 60 && pts / g >= 8)) { delete G.players[p.id]; return; }
+  p.left = G.season; p.team = null; p.league = 'gone'; delete p.r; delete p.rec; delete p.contract; delete p.nil; delete p.askF; p.inj = null;
 }
 
 // Open roster spots for next season.
