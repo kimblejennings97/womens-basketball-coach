@@ -24,6 +24,7 @@ live in `js/ui/app.js`; clicks go through `data-act` (ACTS map), form changes th
 - Trades (WNBA): partner select, both rosters with checkboxes and trade value, propose (AI answer shown).
 - Job offers: offers with contract, accept or stay (forced choice when fired). Nav shows "Job offers (n)".
 - Roster: Release button on your own team; NIL column (college). Home: "Coming up" calendar card.
+- History: awards by season (league toggle), record book, career leaders (players + coaches), Hall of Fame (docs/legacy.md).
 - Game menu: "Let my staff handle the offseason" (`G.user.auto`: AI makes recruiting, NIL, draft and FA decisions).
 - Box score: quarter line, both teams' player lines, team totals.
 - Pregame: scouting of both top fives, "Coach the game live" or "Sim the game".

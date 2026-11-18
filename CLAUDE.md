@@ -19,7 +19,7 @@ live play-by-play with in-game coaching. Browser app, plain ES modules, no build
 
 Keep these files current: when you change a system, update its topic file (current design + knobs + measured results).
 
-## Where things stand (2026-11-17, session 2)
+## Where things stand (2026-11-17, end of session 2)
 - Steps 1-4 of the plan are built: real data (363 D1 + 15 WNBA teams), calibrated engine, all screens, live game viewer,
   both seasons + postseasons, and the full offseason loop (docs/offseason.md): 5-in-5 eligibility, NIL, recruiting,
   transfer portal, WNBA draft lottery + draft, free agency, cuts, trades, coaching carousel + job offers, coach growth /
@@ -28,7 +28,9 @@ Keep these files current: when you change a system, update its topic file (curre
 - Engine matches real per-game averages and real margin distributions (docs/engine.md). `multiseason.html` runs N
   seasons and checks league health (rating levels, team-strength spread, margins, recruiting, save size): stable over 5.
 - Verified headlessly only (harnesses, multi-season runs, Edge screenshots of every new screen). The user has not played
-  it yet; iPad is their test device. Saves ~4.4 MB after a season, +0.2 MB/season.
+  it yet; iPad is their test device. Saves ~4.4 MB after a season, +0.2-0.3 MB/season.
+- Next: the user's iPad review (court animation motion/size/pace, balance). Watch items: NCAA scoring leader ~34 ppg
+  (real ~28-31; side effect of NCAA `cal.skill` 2.7), WNBA margins drift to ~10-11 by year 5 (docs/roadmap.md).
 - Hosting: live at https://kimblejennings97.github.io/womens-basketball-coach/ (GitHub Pages; every push to `main` runs
   `.github/workflows/pages.yml`, which builds `dist/` with tools/build_deploy.py). Repo
   github.com/kimblejennings97/womens-basketball-coach is PUBLIC (the user made it public for Pages on a free plan).
