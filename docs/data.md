@@ -31,6 +31,11 @@ Pipeline:
 - Potential: NCAA L + class bump (FR +4.5 ... GR +0.5) + noise; WNBA by age.
 - Positions: SR gives G/F/C; split into PG/SG/SF/PF/C by height, assists and 3PA per 40.
 - `tools/overrides.json` `{player_id: {rating: value}}` is applied last.
+- 5th years (5-in-5 eligibility): Sports-Reference lists graduate students as SR; a 2026-27 senior who was a senior (or
+  GR) on any 2025-26 roster becomes GR (141 players). Unknown class codes become JR in game.
+- WNBA rows without a jersey number carry the name in the number cell; build_data.py swaps them (11 players).
+- `tools/margins.py`: real game margins (2026 WNBA schedule page + 48 sampled 2025-26 NCAA schedules) -> margins.json,
+  the engine's spread-of-results target.
 
 Measured (2026-11-17, full build): 363 D1 teams / 5,003 players, 15 WNBA teams / 218 players (rosters over 12 go to
 free agency in game). NCAA L mean 7.8 (p10 5.8, p50 7.4, p90 10.1, max 16.9). Top: Sarah Strong 16.9, Hannah Hidalgo

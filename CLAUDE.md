@@ -12,19 +12,23 @@ live play-by-play with in-game coaching. Browser app, plain ES modules, no build
 | Real rosters pipeline, rating derivation, logos, colours, overrides | `docs/data.md` |
 | Calendar, schedules, standings, polls, conference tournaments, NCAA tournament, WNBA season | `docs/season.md` |
 | Screens, live game viewer, saves | `docs/ui.md` |
-| Coaches, assistants, careers, recruiting, NIL, portal, WNBA contracts / trades / draft (planned) | `docs/roadmap.md` |
+| Offseason: eligibility, recruiting, NIL, portal, draft + lottery, WNBA contracts / FA / trades, coach growth, carousel, development, rollover | `docs/offseason.md` |
+| What is left to build, open items | `docs/roadmap.md` |
 
 Keep these files current: when you change a system, update its topic file (current design + knobs + measured results).
 
-## Where things stand (2026-11-17)
-- Session 1 built steps 1-3 of the plan + most of step 4's college season: real data (363 D1 teams, 15 WNBA teams),
-  derived ratings, calibrated engine, start screen (unknown coach with job offers / pick any team), screens, live game
-  viewer with coaching, NCAA regular season, conference tournaments, Selection Sunday + 68-team NCAA tournament,
-  WNBA regular season + playoffs, injuries, logos (376/378) + team colours. Not built yet: offseason (draft, recruiting, NIL, portal, contracts, trades, coaching
-  carousel, development, aging), records / Hall of Fame, animation. See `docs/roadmap.md`.
-- Engine calibrated on the real rosters (docs/engine.md table): within ~2% of real NCAA / WNBA averages on most lines.
-  Saves ~4.2 MB at season end (players packed as arrays).
-- Verified headlessly only (harnesses + Edge screenshots). The user has not played it yet; iPad is their test device.
+## Where things stand (2026-11-17, session 2)
+- Steps 1-4 of the plan are built: real data (363 D1 + 15 WNBA teams), calibrated engine, all screens, live game viewer,
+  both seasons + postseasons, and the full offseason loop (docs/offseason.md): 5-in-5 eligibility, NIL, recruiting,
+  transfer portal, WNBA draft lottery + draft, free agency, cuts, trades, coaching carousel + job offers, coach growth /
+  reputation, development + aging, rollover to the next season. Next: step 5 (record books, Hall of Fame), then animation.
+- Engine matches real per-game averages and real margin distributions (docs/engine.md). `multiseason.html` runs N
+  seasons and checks league health (rating levels, team-strength spread, margins, recruiting, save size): stable over 5.
+- Verified headlessly only (harnesses, multi-season runs, Edge screenshots of every new screen). The user has not played
+  it yet; iPad is their test device. Saves ~4.4 MB after a season, +0.2 MB/season.
+- Hosting: GitHub Pages workflow (`.github/workflows/pages.yml`, builds `dist/` with tools/build_deploy.py) and an
+  optional Cloudflare `deploy.bat` like wrestling-coach. Remote `origin` = github.com/kimblejennings97/womens-basketball-coach
+  (the user creates the repo and pushes; `gh` is not installed here).
 
 ## Decisions made with the user (don't re-litigate)
 - NCAA D1 only for college (no D2/NAIA for now). One shared world: both leagues simulated every season.
@@ -34,7 +38,11 @@ Keep these files current: when you change a system, update its topic file (curre
 - In-game coaching: offensive style + pace, defensive formation + press, rotations / subs, timeouts, late-game fouling.
 - Player ratings 1-20 (list in js/data/gen.js RATINGS). Real ratings derived from stats (docs/data.md).
 - Coaches have 1-20 ratings that grow; up to 3 assistant coaches, hired when moving to a new job or when an
-  assistant's contract runs out. NIL is part of college recruiting. WNBA contracts follow a simplified CBA (docs/roadmap.md).
+  assistant's contract runs out. Growth is bigger for success at low-prestige programs. NIL is a team budget shared by
+  recruits and current players; underpaid players are likelier to transfer. WNBA contracts: simplified CBA, Claude's logic.
+- College eligibility: NCAA 5-in-5 (no redshirts); anyone already past 4 years is a 5th year. Roster limit 15 (D1).
+- WNBA draft lottery copies the real rules (all non-playoff teams, two-season record, picks 1-2 drawn).
+- Host on GitHub Pages (like the wrestling game's public hosting; wrestling actually uses Cloudflare, deploy.bat kept as an option).
 - Real names, rosters and logos for private use; switch to generated players + badges before any public release.
 - Never bypass a site's blocking: if a fetch gets 403/429, stop and ask the user to save the pages.
 
@@ -44,18 +52,24 @@ Often away: keep going and report at the end.
 
 ## Repo, git
 - Local git repo `C:\ClaudeProjects\womens-basketball-coach`, branch `main`. Claude may commit but cannot push. End commit
-  messages with the Co-Authored-By line from the session's system reminder. No remote yet.
-- `.gitignore`: `dist/`, `tools/cache/` (scraped third-party pages: never upload), `_*.html`.
+  messages with the Co-Authored-By line from the session's system reminder. Remote `origin`
+  https://github.com/kimblejennings97/womens-basketball-coach.git (user pushes).
+- `.gitignore`: `dist/`, `tools/cache/` (scraped third-party pages: never upload), `_*.html`, `.wrangler/`.
+- Deploy: push to main -> GitHub Actions builds `dist/` (index.html, css, js, assets) and publishes Pages (Settings ->
+  Pages -> Source: GitHub Actions). `py tools/build_deploy.py` builds dist/ locally; `deploy.bat` = optional Cloudflare.
 
 ## Layout
 - `index.html` + `js/ui/app.js` (all screens), `css/style.css`.
 - `js/engine/`: `game.js` (possession sim, Game class), `rules.js` (league rules, tactics, calibration constants), `rng.js`.
 - `js/game/`: `world.js` (state G, new game, coaches, strength, AI tactics, lineups), `sched.js` (calendar, schedules),
-  `season.js` (day loop, results, standings, polls, brackets), `saves.js` (IndexedDB slots).
+  `season.js` (day loop, results, standings, polls, brackets, offseason event hooks), `offseason.js` (archive, coach
+  growth, carousel, draft, FA, trades, development, rollover), `recruit.js` (NIL, recruiting, portal), `saves.js`.
 - `js/data/`: `real.js` (GENERATED teams + players), `names.js` (GENERATED name pools), `gen.js` (ratings list, generated players).
 - `tools/`: `scrape.py` (fetch pages into tools/cache), `build_data.py` (-> real.js), `fetch_logos.py`, `teamcolors.html`
   + `apply_colors.py`, `targets.py` (real league averages), `fetch.py` (cached rate-limited fetcher; `OFFLINE=1` = cache only).
-- `harness.html` (engine calibration), `serve.py` (port 8766, no-cache).
+- `harness.html` (engine calibration), `multiseason.html` (N-season league health), `seasontest.html`, `uitest.html`,
+  `serve.py` (port 8766, no-cache). Import cycles: world.js <-> offseason.js / recruit.js; never use the other
+  module's exports at load time (e.g. `const ovr = p => W.ovr(p)`, not `W.ovr`).
 
 ## How to test (no Node)
 - Serve: `py serve.py` (port 8766). Python is `py`.
@@ -64,5 +78,9 @@ Often away: keep going and report at the end.
   playoffs, leaders, save size + pack roundtrip). Screenshots: `uitest.html?shot=<screen>&mode=&team=&cont=&poss=`
   (sets `indexedDB = undefined`, drives `window.__dbg.ACTS`), dump the DOM, save as `_w.html`, screenshot that.
   Throwaway pages are `_*.html` (gitignored); delete them afterwards.
-- `harness.html?league=ncaa|wnba&n=2000` (generated teams) and `&real=1` (real rosters) print engine averages next to
-  the real league averages.
+- `harness.html?league=ncaa|wnba&n=2000` (generated teams) and `&real=1` (real rosters) print engine averages and the
+  margin distribution next to the real ones (`&mirror=1`, `&tune=`).
+- `multiseason.html?seasons=5[&mode=unknown&team=<id>&move=1][&tune=]`: whole calendar with the user's team on auto
+  (~60 s a season headless); prints rating levels, team-strength spread, margins, recruiting by prestige tier, draft,
+  carousel, save size. Run it after any change to development, recruiting, the portal, FA or the engine.
+- `uitest.html?...&until=college-offseason|draft|fa|...` sims the calendar to an offseason stop before the screenshot.

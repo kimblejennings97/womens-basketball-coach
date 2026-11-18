@@ -48,28 +48,39 @@ Offences: motion, pick and roll, post, 5-out, dribble drive, Princeton. Pace: pu
 AI teams pick a style from their roster (shooters -> 5-out, good post players -> post, ...) plus a stable per-team flavour.
 
 ## Calibration
-`harness.html?league=ncaa|wnba&n=2000` (generated teams) / `&real=1` (real rosters). Targets = real per-team-game
-averages (tools/targets.py): 2025-26 NCAA D1 and the 2026 WNBA season.
+`harness.html?league=ncaa|wnba&n=2000` (generated teams) / `&real=1` (real rosters, random pairings; NCAA 62% same
+conference) / `&mirror=1` (a team against itself) / `&tune=key:value,...` (overrides the league's rubber band, `skill`,
+`form`). Targets = real per-team-game averages (tools/targets.py) and real margins (tools/margins.py -> margins.json:
+2026 WNBA schedule, 48 sampled 2025-26 NCAA schedules). `multiseason.html` prints season margins on the real schedule.
 
-### Measured (2026-11-17, real rosters, `&real=1`; NCAA 4,000 games 62% same-conference, WNBA 2,000)
+### Spread of results
+- Rubber band (`cal.rb`): leaders' make chance drops / trailers' rises by `rbLead` / `rbTrail` logit per point beyond
+  `rbStart`, capped, fading to zero between `rbPeak` and `rbFade` so real mismatches can still blow out.
+  WNBA 2 / .05 / .035 / peak 12 / fade 22; NCAA 2 / .04 / .03 / peak 10 / fade 17.
+- Talent weight `cal.skill` multiplies the rating terms of the make chance: NCAA 2.7 (college talent gaps are huge),
+  WNBA 1.2. Per-game form barely matters (0.05).
+
+### Measured (2026-11-17, real rosters, `&real=1`; NCAA 4,000 games, WNBA 3,000)
 | per team-game | NCAA sim | NCAA real | WNBA sim | WNBA real |
 |---|---|---|---|---|
-| Possessions | 70.4 | 70.9 | 82.8 | 82.3 |
-| Points | 65.2 | 66.3 | 87.0 | 87.1 |
-| FG% | .408 | .408 | .449 | .452 |
-| 3PA / 3P% | 19.6 / .309 | 20.0 / .310 | 24.8 / .340 | 25.5 / .340 |
-| FTA / FT% | 16.6 / .708 | 16.8 / .713 | 21.4 / .776 | 20.8 / .786 |
-| ORB% | .332 | .316 | .257 | .255 |
-| DRB | 23.7 | 25.2 | 26.2 | 25.0 |
-| AST / STL / BLK | 12.8 / 8.6 / 3.0 | 13.3 / 8.3 / 3.2 | 20.4 / 7.5 / 4.1 | 20.7 / 7.4 / 4.0 |
-| TOV / PF | 16.8 / 16.2 | 16.1 / 16.8 | 13.5 / 18.9 | 13.1 / 19.8 |
+| Possessions | ~70.5 | 70.9 | 82.8 | 82.3 |
+| Points | 65.4 | 66.3 | 87.2 | 87.1 |
+| FG% / 3P% | .406 / .311 | .408 / .310 | .450 / .341 | .452 / .340 |
+| FTA / FT% | 17.1 / .709 | 16.8 / .713 | 21.0 / .780 | 20.8 / .786 |
+| ORB% / DRB | .330 / 23.8 | .316 / 25.2 | .257 / 26.2 | .255 / 25.0 |
+| AST / STL / BLK | 12.8 / 8.2 / 3.1 | 13.3 / 8.3 / 3.2 | 20.5 / 7.4 / 4.1 | 20.7 / 7.4 / 4.0 |
+| TOV / PF | 16.1 / 16.9 | 16.1 / 16.8 | 13.5 / 18.6 | 13.1 / 19.8 |
+| Points / possession | .936 | .935 | 1.053 | 1.058 |
 
-- Home win% 55%. Average margin: NCAA 14.8, WNBA 15.1; identical teams (`&mirror=1`) still 13.0 (WNBA). That is
-  possession-level noise; a rubber band (leaders -0.016 logit per point over 8, trailers +0.011) and garbage-time benches
-  bring it down from 14.5. Real WNBA average margin not checked yet (needs game results) — open item.
-- Full season (all 378 teams, 5,587 games): leaders NCAA 28.3 ppg / 14.0 rpg / 7.0 apg, WNBA 23.3 ppg. Tactic mix:
-  man ~60%, 2-3 ~25%, pick and roll / post most common offences, ~15% press.
-- Speed: ~1 ms per game; a whole season (both leagues) simulates in a few seconds.
+Margins over a full season on the real schedule (multiseason.html, season 1):
+| | mean | median | <=5 | >=20 | >=30 |
+|---|---|---|---|---|---|
+| NCAA sim | 16.3 | 13-14 | .22 | .32 | .15 |
+| NCAA real | 16.3 | 12 | .18 | .28 | .14 |
+| WNBA sim | 11.8-12.0 | 10 | .27 | .14-.17 | .05-.06 |
+| WNBA real | 11.8 | 10 | .27 | .17 | .05 |
+Identical WNBA teams: average margin ~9 (was 13 before the fading rubber band). Home win% ~54-55%.
+In later seasons (generated players) NCAA margins run 14-16, WNBA 10-12 (docs/offseason.md).
 
-Knobs: `RULES.<league>.cal` (make / mix / foul / tov / oreb / ast / hcMean / teamReb / skill), usage exponent 0.13 in
-`usageW`, rotation score in `autoSubs`, rubber band in `shoot`.
+Knobs: `RULES.<league>.cal` (make / mix / foul / tov / oreb / ast / hcMean / teamReb / skill / rb), usage exponent 0.13
+in `usageW`, rotation score in `autoSubs`.

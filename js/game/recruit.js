@@ -103,7 +103,7 @@ function aiTargets(G, rng, portal = false) {
   teams.forEach(({ t }, j) => {
     const need = portal ? Math.max(0, openSpots(G, t)) : clamp(openSpots(G, t), 1, 6);
     if (!need) return;
-    t.rt = (t.rt || []).filter(id => G.players[id] && !G.players[id].rec.commit);
+    t.rt = (t.rt || []).filter(id => G.players[id]?.rec && !G.players[id].rec.commit);
     const lo = Math.max(0, Math.floor(j * per * 0.55) - 3), hi = Math.min(byRank.length, Math.ceil((j + 1) * per * 1.7) + 12);
     for (let k = 0; k < need * 3 && hi > lo; k++) {
       const id = byRank[lo + Math.floor(rng() * (hi - lo))];
@@ -118,7 +118,7 @@ function aiTargets(G, rng, portal = false) {
 // How strongly a recruit is drawn to a team (per hour of recruiting).
 export function pull(G, R, t) {
   const sr = staffRatings(G, t), c = G.coaches[t.coach];
-  let x = clamp(0.55 + 0.1 * (t.prestige - (R.rec.portal ? (ovr(R) - 3) : STAR_NEED[pstars(R)])), 0.15, 1.9);
+  let x = clamp(0.55 + (R.rec.stars >= 4 ? 0.13 : 0.1) * (t.prestige - (R.rec.portal ? (ovr(R) - 3) : STAR_NEED[pstars(R)])), 0.15, 1.9);
   x *= 0.7 + 0.6 * sr.rec / 20;
   const ask = R.rec.ask, off = R.rec.nil?.[t.id] || 0;
   if (ask > 0) x *= clamp(0.72 + 0.45 * off / ask, 0.72, 1.4);
@@ -142,10 +142,12 @@ export function recruitWeek(G, d, rng = null, quiet = false) {
     else {
       const live = (t.rt || []).filter(id => G.players[id]?.rec && !G.players[id].rec.commit);
       if (openSpots(G, t) <= 0) continue;
-      board = live.map(id => [id, Math.min(10, 36 / Math.max(1, live.length))]);
+      // AI staffs concentrate: 8 hours a week (the most anyone can spend on one recruit) on each of their four best targets, the rest share what is left
+      live.sort((x, y) => G.players[x].rec.rank - G.players[y].rec.rank);
+      board = live.map((id, i) => [id, i < 4 ? 8 : Math.max(1, (36 - 32) / Math.max(1, live.length - 4))]);
     }
-    for (const [id, h] of board) {
-      const R = G.players[id]; if (!R || !+h) continue;
+    for (let [id, h] of board) {
+      const R = G.players[id]; if (!R || !+h) continue; h = Math.min(8, +h);
       R.rec.int[t.id] = Math.round(((R.rec.int[t.id] || 0) + h * pull(G, R, t)) * 10) / 10;
     }
   }
@@ -158,7 +160,7 @@ export function recruitWeek(G, d, rng = null, quiet = false) {
     if (!ranked.length) continue;
     const [best, bv] = ranked[0], second = ranked[1]?.[1] || 0;
     const need = R.rec.portal ? 28 : 48 + (R.rec.stars - 2) * 8;
-    if (bv < need || bv < second * 1.2 + 4) continue;
+    if (bv < need || bv < second * (late ? 1.08 : 1.2) + 4) continue;
     if (openSpots(G, G.teams[best]) <= 0) continue;
     if (rng() > (R.rec.portal ? 0.45 : late ? 0.5 : 0.25)) continue;
     commit(G, R, best, quiet);
@@ -183,6 +185,12 @@ const news = (G, text, me = 0) => { G.news.push({ day: G.day + 1, text, me }); i
 // End of the signing period: teams with open spots take the best remaining recruits; the rest go elsewhere (gone).
 export function closeSigning(G, rng) {
   const ut = userTeam(G);
+  // undecided recruits with offers sign with the offering team they like most (that still has a spot), the user included
+  for (const id of G.recruits || []) {
+    const R = G.players[id]; if (!R?.rec || R.rec.commit || R.rec.portal) continue;
+    const best = R.rec.off.filter(tid => G.teams[tid]?.league === 'ncaa' && (R.rec.int[tid] || 0) > 10 && openSpots(G, G.teams[tid]) > 0).sort((a, b) => (R.rec.int[b] || 0) - (R.rec.int[a] || 0))[0];
+    if (best) commit(G, R, best, best !== ut);
+  }
   const left = (G.recruits || []).map(id => G.players[id]).filter(R => R && R.rec && !R.rec.commit && !R.rec.portal).sort((a, b) => a.rec.rank - b.rec.rank);
   const teams = Object.values(G.teams).filter(t => t.league === 'ncaa' && (t.id !== ut || G.user.auto)).sort(() => rng() - 0.5);
   for (const t of teams) {

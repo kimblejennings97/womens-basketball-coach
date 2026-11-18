@@ -495,7 +495,7 @@ function recruitRows(list, mode) {
     const need = r.portal ? 28 : 48 + (r.stars - 2) * 8;
     return `<tr>${base}<td><div class="bar" style="width:90px;display:inline-block"><i class="t3" style="width:${Math.min(100, I.mine / need * 100)}%"></i></div> <small>${I.pos ? `${I.pos} of ${I.n}` : 'no offer'}</small></td>
       <td>${r.commit ? `<b>${tn(r.commit, 14)}</b>` : I.lead ? tn(I.lead[0], 14) : '-'}</td>
-      <td><select data-ch="rhours" data-v="${R.id}" ${r.commit ? 'disabled' : ''}>${[0, 2, 4, 6, 8, 10].map(h => `<option ${+board[R.id] === h ? 'selected' : ''}>${h}</option>`).join('')}</select></td>
+      <td><select data-ch="rhours" data-v="${R.id}" ${r.commit ? 'disabled' : ''}>${[0, 2, 4, 6, 8].map(h => `<option ${+board[R.id] === h ? 'selected' : ''}>${h}</option>`).join('')}</select></td>
       <td>${off ? '<span class="pos">offered</span>' : `<button class="small" data-act="roff" data-v="${R.id}">Offer</button>`}</td>
       <td><input type="number" min="0" step="1" style="width:64px" value="${Math.round((r.nil[u] || 0) / 1000)}" data-ch="rnil" data-v="${R.id}" title="asks about ${K(r.ask)}"> <small class="muted">ask ${K(r.ask)}</small></td>
       <td><button class="secondary small" data-act="rdel" data-v="${R.id}">✕</button></td></tr>`;

@@ -6,8 +6,9 @@ and the WNBA season is played (2027 = 2026-27 college + 2027 WNBA). `calendar(Y)
   Dec 30 - Feb 27 (alternating 3 / 4 days); conference tournaments start 4 days after the last conference date (Mar 3,
   one round per day); Selection Sunday = first Sunday on/after Mar 12 (Mar 14, 2027); First Four Sel+3/+4, rounds 1-2
   Sel+5..+8, Sweet 16 Sel+12/13, Elite Eight Sel+14/15, Final Four Sel+19, title game Sel+21 (Apr 4, 2027).
-- WNBA: draft second Monday of April; season from the second Friday of May (44 games) to mid-September; playoffs start
-  once the regular season is done.
+- WNBA: draft second Monday of April (at least 4 days after the title game); season from the second Friday of May (44
+  games) to mid-September; playoffs start once the regular season is done.
+- Offseason dates (portal, signing period, free agency, cuts, trade deadline, rollover): docs/offseason.md.
 
 ## Schedules
 - NCAA non-conference: each date pairs every team (one bye with an odd count) with a similar-strength non-conference
@@ -20,7 +21,9 @@ and the WNBA season is played (2027 = 2026-27 college + 2027 WNBA). `calendar(Y)
 `advance(G)` loops days: day events (poll, conference tournament start, Selection Sunday, tournament games for the day),
 stops *before* a day with the user's game (`{stop:'game'}`), else plays the day. The UI then shows the pregame screen
 (coach live / sim); `finishUserDay` records the user's game and plays the rest of that day. Stops also at
-`selection`, `ncaa-champion`, `wnba-champion`.
+`selection`, `ncaa-champion`, `wnba-champion` and the offseason stops (`college-offseason`, `jobs`, `draft`, `draft-done`,
+`fa`, `new-season`; docs/offseason.md). After a league's season its player stats move into each player's history
+(`archive`); league leaders read the history once the live stats are empty.
 
 ## Standings, polls, power
 - Standings by conference record (NCAA) / overall (WNBA), then W-L, then point differential.
