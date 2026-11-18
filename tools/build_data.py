@@ -177,7 +177,8 @@ def wnba():
         m = re.search(r'Record:\s*(\d+)-(\d+)', inf)
         logo = re.search(r'class="teamlogo"\s+src="([^"]+)"', th)
         conf = 'Eastern' if 'Eastern Conference' in inf else 'Western'
-        t = dict(id=ab.lower(), league='wnba', short=name.split()[-1] if ab not in ('GSV',) else 'Valkyries', name=name, city=' '.join(name.split()[:-1]), conf=conf, confId=conf.lower(),
+        tid = {'CON': 'ctsun'}.get(ab, ab.lower())   # 'con' is a reserved file name on Windows (logo file)
+        t = dict(id=tid, league='wnba', short=name.split()[-1] if ab not in ('GSV',) else 'Valkyries', name=name, city=' '.join(name.split()[:-1]), conf=conf, confId=conf.lower(),
                  coach=coach, srs=net, logoUrl=logo.group(1) if logo else None, abbr=ab, roster=[], rec=[int(m.group(1)), int(m.group(2))] if m else None)
         for r in table(th, 'roster'):
             pid = r['_id']
@@ -192,14 +193,14 @@ def wnba():
 
 
 # ---------------------------------------------------------------- ratings
-def features(S):
+def features(S, ftp=0.71):
     """Season totals (summed) -> rate features. Shrunk toward league priors by volume."""
     mp = max(S['mp'], 1)
     fg2, fg2a = S['fg'] - S['fg3'], S['fga'] - S['fg3a']
     f = {}
     f['f2pct'] = (fg2 + 0.45 * 40) / (fg2a + 40)
     f['fg3pct'] = (S['fg3'] + 0.30 * 50) / (S['fg3a'] + 50)
-    f['ftpct'] = (S['ft'] + 0.70 * 25) / (S['fta'] + 25)
+    f['ftpct'] = (S['ft'] + ftp * 25) / (S['fta'] + 25)
     K = 150  # minutes of prior
     def per40(k, prior):
         return (S[k] + prior * K / 40) / (mp + K) * 40
@@ -278,7 +279,8 @@ def build_league(teams, roster, stats, league):
         S = {k: sum(x[k] for x in lst) for k in STATS}
         srs = sum(x['srs'] * x['mp'] for x in lst) / max(sum(x['mp'] for x in lst), 1)
         agg[pid] = (S, srs)
-    pool = [(features(S), S['mp']) for S, _ in agg.values() if S['mp'] >= 100]
+    ftp = 0.71 if league == 'ncaa' else 0.79
+    pool = [(features(S, ftp), S['mp']) for S, _ in agg.values() if S['mp'] >= 100]
     z = zscorer(pool)
     tsrs = {t['id']: t['srs'] for t in teams}
     players = {}
@@ -291,7 +293,7 @@ def build_league(teams, roster, stats, league):
         else:
             prior = 12.6 + 0.08 * tp + min(p.get('exp', 0), 6) * 0.15
         if S and S['mp'] > 0:
-            f = features(S)
+            f = features(S, ftp)
             if league == 'ncaa':
                 Lstat = 8.4 + 1.5 * z('gs40', f['gs40']) + 1.0 * z('mpg', f['mpg']) + 0.068 * srs + 0.4 * CLS_BUMP.get(cls, 1)
             else:

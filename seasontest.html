@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><body><pre id="o">running</pre><!-- Full two-league season test: newGame (UConn), advance to the WNBA title, prints schedule counts, poll, bracket, standings, leaders, save size + pack roundtrip. -->
+<script type="module">
+const o = document.getElementById('o'), out = [];
+const canon = x => JSON.stringify(x, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(q => [q, v[q]])) : v);
+try {
+  const W = await import('./js/game/world.js'), S = await import('./js/game/season.js'), SC = await import('./js/game/sched.js');
+  let t0 = performance.now();
+  const G = W.newGame({ seed: 11, coachName: 'Test', mode: 'pick', team: 'connecticut' });
+  out.push(`newGame ${(performance.now() - t0).toFixed(0)}ms teams ${Object.keys(G.teams).length} players ${Object.keys(G.players).length} games ${G.games.length}`);
+  const cal = SC.calendar(G.season);
+  out.push('calendar ' + JSON.stringify(Object.fromEntries(Object.entries(cal).map(([k, v]) => [k, typeof v === 'number' ? SC.fmtDay(v, true) : Array.isArray(v) ? v.map(x => SC.fmtDay(x)).join(',') : Object.fromEntries(Object.entries(v).map(([a, b]) => [a, SC.fmtDay(b)]))]))));
+  const per = {}; for (const g of G.games) if (g.lg === 'ncaa') { per[g.h] = (per[g.h] || 0) + 1; per[g.a] = (per[g.a] || 0) + 1; }
+  const cnt = Object.values(per); out.push(`ncaa games per team min ${Math.min(...cnt)} max ${Math.max(...cnt)} avg ${(cnt.reduce((a, b) => a + b, 0) / cnt.length).toFixed(1)}`);
+  const wp = {}; for (const g of G.games) if (g.lg === 'wnba') { wp[g.h] = (wp[g.h] || 0) + 1; wp[g.a] = (wp[g.a] || 0) + 1; }
+  out.push('wnba games per team ' + JSON.stringify(wp) + ' last day ' + SC.fmtDay(Math.max(...G.games.filter(g => g.lg === 'wnba').map(g => g.day))));
+  t0 = performance.now();
+  const badg = G.games.filter(g => !G.teams[g.h] || !G.teams[g.a]); out.push('bad games ' + badg.length + ' ' + JSON.stringify(badg.slice(0, 3)));
+  let stops = [];
+  for (let k = 0; k < 20; k++) { const r = S.advance(G, { stopAtUserGame: false }); stops.push(r.stop + '@' + SC.fmtDay(r.day)); if (r.stop === 'wnba-champion' || r.stop === 'max') break; }
+  out.push(`season sim ${(performance.now() - t0).toFixed(0)}ms stops: ${stops.join(' ')}`);
+  out.push('poll: ' + G.polls.ncaa.list.slice(0, 10).map(x => `${x.rank}.${G.teams[x.id].short} ${x.w}-${x.l}`).join('  '));
+  const B = G.bracket;
+  if (B) {
+    out.push('NCAA champ: ' + (B.champ && G.teams[B.champ].name) + '  F4: ' + (B.w[3] || []).map(id => id && G.teams[id].short + '(' + B.seeds[id] + ')').join(', '));
+    out.push('1 seeds: ' + Object.entries(B.seeds).filter(([, s]) => s === 1).map(([id]) => G.teams[id].short).join(', ') + '  #teams ' + Object.keys(B.seeds).length);
+    out.push('slot undefined: ' + B.slot.filter(x => x === undefined).length + ' pre ' + JSON.stringify(B.pre.map(p => [p.a, p.b, p.win])) + ' w lens ' + B.w.map(x => x && x.filter(y => y !== undefined).length).join(',') + ' g0 ' + (B.g[0] || []).filter(Boolean).length);
+    const und = G.games.filter(g => !g.done && g.day < G.day); out.push('unplayed past games: ' + und.length);
+  }
+  if (G.wpo) out.push('WNBA champ ' + G.wpo.champ + ' rounds ' + G.wpo.r.map(rd => rd.map(sr => sr.a + ' ' + sr.wa + '-' + sr.wb + ' ' + sr.b).join(', ')).join(' / '));
+  const ws = S.standings(G, 'wnba'); out.push('WNBA: ' + ws.slice(0, 15).map(t => `${t.abbr} ${t.rec.w}-${t.rec.l}`).join('  '));
+  const uc = G.teams['connecticut']; out.push(`UConn ${uc.rec.w}-${uc.rec.l} conf ${uc.rec.cw}-${uc.rec.cl} post ${JSON.stringify(uc.post)} tactics ${JSON.stringify(uc.tactics)}`);
+  for (const k of ['pts', 'reb', 'ast']) out.push(k + ' leaders: ' + S.leaders(G, 'ncaa', k, 5).map(x => `${x.p.name} ${x.v.toFixed(1)} (${(x.p.st.sec/60/x.p.st.g).toFixed(0)}m, ${x.p.pos})`).join(', '));
+  out.push('wnba pts: ' + S.leaders(G, 'wnba', 'pts', 5).map(x => `${x.p.name} ${x.v.toFixed(1)}`).join(', '));
+  const json = JSON.stringify(G); out.push('size players ' + (JSON.stringify(G.players).length/1e6).toFixed(2) + ' games ' + (JSON.stringify(G.games).length/1e6).toFixed(2) + ' coaches ' + (JSON.stringify(G.coaches).length/1e6).toFixed(2) + ' tourneys ' + (JSON.stringify(G.tourneys||{}).length/1e6).toFixed(2)); out.push(`save size ${(json.length / 1e6).toFixed(2)} MB`);
+  const SV = await import('./js/game/saves.js'); const pk = SV.packGame(G); const G2 = SV.unpackGame(pk);
+  out.push('packed ' + (pk.length / 1e6).toFixed(2) + ' MB, roundtrip equal: ' + (canon(G2) === canon(G)));
+  const tac = {}; for (const t of Object.values(G.teams)) { tac[t.tactics.off] = (tac[t.tactics.off] || 0) + 1; tac[t.tactics.def] = (tac[t.tactics.def] || 0) + 1; if (t.tactics.press) tac.press = (tac.press || 0) + 1; }
+  out.push('tactics ' + JSON.stringify(tac));
+} catch (e) { out.push('ERR ' + e.stack); }
+o.textContent = out.join('\n');
+</script>

@@ -1,0 +1,1506 @@
+{
+"abilene-christian": [
+"#4e2683",
+"#b4b5b4"
+],
+"air-force": [
+"#103595",
+"#4562ac"
+],
+"akron": [
+"#0d1d41",
+"#c7b988"
+],
+"alabama": [
+"#a32135",
+"#b85564"
+],
+"alabama-am": [
+"#651c32",
+"#a47986"
+],
+"alabama-state": [
+"#010101",
+"#e7e8e8"
+],
+"albany-ny": [
+"#502c6c",
+"#a2a9ad"
+],
+"alcorn-state": [
+"#481b6d",
+"#f3ebdb"
+],
+"american": [
+"#22428b",
+"#c72234"
+],
+"appalachian-state": [
+"#f9cc01",
+"#a78900"
+],
+"arizona": [
+"#06205c",
+"#c20f2f"
+],
+"arizona-state": [
+"#fec526",
+"#7e2244"
+],
+"arkansas": [
+"#a32135",
+"#460e17"
+],
+"arkansas-state": [
+"#ce152d",
+"#020101"
+],
+"arkansas-pine-bluff": [
+"#eca900",
+"#040301"
+],
+"army": [
+"#e7d2ad",
+"#010101"
+],
+"auburn": [
+"#0b2240",
+"#f94515"
+],
+"austin-peay": [
+"#c20e2e",
+"#d8677c"
+],
+"ball-state": [
+"#c20f2f",
+"#020101"
+],
+"baylor": [
+"#144734",
+"#b9c8c3"
+],
+"bellarmine": [
+"#792e3d",
+"#c5a4ab"
+],
+"belmont": [
+"#1a2351",
+"#b21e2a"
+],
+"bethune-cookman": [
+"#860138",
+"#fdb814"
+],
+"binghamton": [
+"#046747",
+"#010403"
+],
+"boise-state": [
+"#0033a0",
+"#f94515"
+],
+"boston-college": [
+"#8a2332",
+"#040303"
+],
+"boston-university": [
+"#e31937",
+"#bb5976"
+],
+"bowling-green-state": [
+"#512c1d",
+"#fc5101"
+],
+"bradley": [
+"#d11e2c",
+"#e37b83"
+],
+"brigham-young": [
+"#002e5d",
+"#48688a"
+],
+"brown": [
+"#503629",
+"#c00505"
+],
+"bryant": [
+"#b5985c",
+"#1e1b1d"
+],
+"bucknell": [
+"#f47d30",
+"#012d69"
+],
+"buffalo": [
+"#0958b4",
+"#7aa4d6"
+],
+"butler": [
+"#14274b",
+"#d6d7d9"
+],
+"cal-poly": [
+"#f6de8c",
+"#144734"
+],
+"cal-state-bakersfield": [
+"#133795",
+"#fcc426"
+],
+"cal-state-fullerton": [
+"#0d2439",
+"#fc7b38"
+],
+"cal-state-northridge": [
+"#cc0e2d",
+"#020102"
+],
+"california": [
+"#0d1d41",
+"#3a4764"
+],
+"california-baptist": [
+"#0e2453",
+"#a17307"
+],
+"campbell": [
+"#fc4711",
+"#040202"
+],
+"canisius": [
+"#ebac1e",
+"#182e5b"
+],
+"central-arkansas": [
+"#4e2582",
+"#020102"
+],
+"central-connecticut-state": [
+"#03549b",
+"#ced4d8"
+],
+"central-michigan": [
+"#6b0c25",
+"#fed223"
+],
+"charleston-southern": [
+"#002857",
+"#a89767"
+],
+"charlotte": [
+"#0b5740",
+"#568a7b"
+],
+"chattanooga": [
+"#eba904",
+"#002756"
+],
+"chicago-state": [
+"#285342",
+"#020303"
+],
+"cincinnati": [
+"#010101",
+"#cd2c2e"
+],
+"clemson": [
+"#f2682b",
+"#f7aa88"
+],
+"cleveland-state": [
+"#16553f",
+"#020303"
+],
+"coastal-carolina": [
+"#007178",
+"#88684f"
+],
+"colgate": [
+"#98002e",
+"#b54868"
+],
+"college-of-charleston": [
+"#8c0b03",
+"#9d8858"
+],
+"colorado": [
+"#c5b683",
+"#010100"
+],
+"colorado-state": [
+"#1a5632",
+"#c3b867"
+],
+"columbia": [
+"#025288",
+"#7ba2d5"
+],
+"connecticut": [
+"#0b2240",
+"#566579"
+],
+"coppin-state": [
+"#001f62",
+"#fbc304"
+],
+"cornell": [
+"#e01a1d",
+"#8a653d"
+],
+"creighton": [
+"#15284c",
+"#b2b5b5"
+],
+"dartmouth": [
+"#166838",
+"#040504"
+],
+"davidson": [
+"#b6ada5",
+"#020202"
+],
+"dayton": [
+"#dd0131",
+"#ea6582"
+],
+"delaware": [
+"#014a98",
+"#f8d000"
+],
+"delaware-state": [
+"#040404",
+"#049ddb"
+],
+"denver": [
+"#c20f2f",
+"#a99767"
+],
+"depaul": [
+"#003da6",
+"#010001"
+],
+"detroit-mercy": [
+"#ad1c3e",
+"#024b8d"
+],
+"drake": [
+"#002d6c",
+"#b1b1b1"
+],
+"drexel": [
+"#fec601",
+"#052e6e"
+],
+"duke": [
+"#062f87",
+"#bac5dd"
+],
+"duquesne": [
+"#041e42",
+"#596b83"
+],
+"east-carolina": [
+"#592b82",
+"#fcc403"
+],
+"east-tennessee-state": [
+"#002d62",
+"#fec423"
+],
+"texas-am-commerce": [
+"#eeb111",
+"#003e7e"
+],
+"eastern-illinois": [
+"#033796",
+"#3b7ac7"
+],
+"eastern-kentucky": [
+"#72253d",
+"#945a6c"
+],
+"eastern-michigan": [
+"#0d6a41",
+"#77ac95"
+],
+"eastern-washington": [
+"#c8102e",
+"#040404"
+],
+"elon": [
+"#6c0a23",
+"#b79b57"
+],
+"evansville": [
+"#391461",
+"#f68c22"
+],
+"fairfield": [
+"#b62248",
+"#e3e4e5"
+],
+"fairleigh-dickinson": [
+"#28334a",
+"#e6e7ea"
+],
+"florida": [
+"#0e6b38",
+"#ed4923"
+],
+"florida-am": [
+"#00773e",
+"#683a07"
+],
+"florida-atlantic": [
+"#012856",
+"#c3c7ca"
+],
+"florida-gulf-coast": [
+"#047748",
+"#143c7c"
+],
+"florida-international": [
+"#011e41",
+"#b68400"
+],
+"florida-state": [
+"#862633",
+"#020202"
+],
+"fordham": [
+"#7c0729",
+"#eee0e3"
+],
+"fresno-state": [
+"#ce152d",
+"#374766"
+],
+"furman": [
+"#5a2d84",
+"#baa7cc"
+],
+"gardner-webb": [
+"#ce152d",
+"#030202"
+],
+"george-mason": [
+"#caac2c",
+"#35653a"
+],
+"george-washington": [
+"#e3cf9f",
+"#03275e"
+],
+"georgetown": [
+"#06143f",
+"#8d817b"
+],
+"georgia": [
+"#000000",
+"#bc1637"
+],
+"georgia-southern": [
+"#041d41",
+"#a1a8ad"
+],
+"georgia-state": [
+"#0234a1",
+"#cd0c2b"
+],
+"georgia-tech": [
+"#ac862e",
+"#2b364b"
+],
+"gonzaga": [
+"#c1c5c8",
+"#59647b"
+],
+"grambling": [
+"#fed204",
+"#010100"
+],
+"grand-canyon": [
+"#5e249d",
+"#c7b2dd"
+],
+"green-bay": [
+"#095540",
+"#639386"
+],
+"hampton": [
+"#013ca5",
+"#5d84c6"
+],
+"harvard": [
+"#a32135",
+"#cb828d"
+],
+"hawaii": [
+"#144734",
+"#b8b8b8"
+],
+"high-point": [
+"#332986",
+"#d8d7e8"
+],
+"hofstra": [
+"#033794",
+"#ffc72c"
+],
+"holy-cross": [
+"#592b82",
+"#27123a"
+],
+"houston": [
+"#cf152d",
+"#dc5869"
+],
+"houston-baptist": [
+"#002f87",
+"#fe5a17"
+],
+"howard": [
+"#00263e",
+"#39566a"
+],
+"idaho": [
+"#febe10",
+"#040303"
+],
+"idaho-state": [
+"#fb671a",
+"#010101"
+],
+"illinois": [
+"#ff5f05",
+"#13284a"
+],
+"illinois-state": [
+"#e61836",
+"#241f20"
+],
+"illinois-chicago": [
+"#0e1d61",
+"#db0632"
+],
+"incarnate-word": [
+"#e31d24",
+"#231f20"
+],
+"indiana": [
+"#b20838",
+"#d57a94"
+],
+"indiana-state": [
+"#004c96",
+"#d0d0ce"
+],
+"iona": [
+"#6f2c3d",
+"#e3960d"
+],
+"iowa": [
+"#000000",
+"#d9d9d9"
+],
+"iowa-state": [
+"#8a2332",
+"#fdc527"
+],
+"iupui": [
+"#9f092d",
+"#b1536a"
+],
+"jackson-state": [
+"#1f3366",
+"#55648b"
+],
+"jacksonville": [
+"#004e42",
+"#c4b783"
+],
+"jacksonville-state": [
+"#c92227",
+"#241f20"
+],
+"james-madison": [
+"#cbb677",
+"#322986"
+],
+"kansas": [
+"#003ca6",
+"#facd01"
+],
+"missouri-kansas-city": [
+"#014987",
+"#fdcd06"
+],
+"kansas-state": [
+"#330a57",
+"#684a83"
+],
+"kennesaw-state": [
+"#ffb71b",
+"#010100"
+],
+"kent-state": [
+"#033876",
+"#ecaa1d"
+],
+"kentucky": [
+"#0033a0",
+"#4569b9"
+],
+"la-salle": [
+"#092f57",
+"#f3c300"
+],
+"lafayette": [
+"#90182b",
+"#060808"
+],
+"lamar": [
+"#e41634",
+"#771d2c"
+],
+"le-moyne": [
+"#02512e",
+"#377657"
+],
+"lehigh": [
+"#653601",
+"#cfab7a"
+],
+"liberty": [
+"#012d62",
+"#c41130"
+],
+"lindenwood": [
+"#050403",
+"#b3a26b"
+],
+"lipscomb": [
+"#fdb813",
+"#38295d"
+],
+"arkansas-little-rock": [
+"#72243c",
+"#a4a8a8"
+],
+"long-beach-state": [
+"#010101",
+"#989898"
+],
+"long-island-university": [
+"#59b2e7",
+"#a6d5f2"
+],
+"longwood": [
+"#0d1d41",
+"#3d4965"
+],
+"louisiana-lafayette": [
+"#37050b",
+"#dd5a6b"
+],
+"louisiana-state": [
+"#592b82",
+"#b09ac4"
+],
+"louisiana-tech": [
+"#27377d",
+"#e51b24"
+],
+"louisiana-monroe": [
+"#8a2332",
+"#e9a704"
+],
+"louisville": [
+"#c10230",
+"#f5a800"
+],
+"loyola-il": [
+"#f5a706",
+"#572a31"
+],
+"loyola-md": [
+"#006548",
+"#c7c8c7"
+],
+"loyola-marymount": [
+"#ab0433",
+"#1688b4"
+],
+"maine": [
+"#261a06",
+"#3598d3"
+],
+"manhattan": [
+"#00703c",
+"#bad9cb"
+],
+"marist": [
+"#e31837",
+"#d8d8d8"
+],
+"marquette": [
+"#08215c",
+"#fcc526"
+],
+"marshall": [
+"#00ae41",
+"#ad7a57"
+],
+"maryland": [
+"#cf152d",
+"#f6c701"
+],
+"maryland-baltimore-county": [
+"#ae841e",
+"#030200"
+],
+"maryland-eastern-shore": [
+"#691b33",
+"#c8c7c9"
+],
+"massachusetts": [
+"#891c1d",
+"#050505"
+],
+"massachusetts-lowell": [
+"#013ca6",
+"#cf152d"
+],
+"mcneese-state": [
+"#062f87",
+"#facd01"
+],
+"memphis": [
+"#052f87",
+"#858a8c"
+],
+"mercer": [
+"#e87722",
+"#020202"
+],
+"mercyhurst": [
+"#026857",
+"#79a9a6"
+],
+"merrimack": [
+"#013768",
+"#f9b716"
+],
+"miami-fl": [
+"#e87722",
+"#124734"
+],
+"miami-oh": [
+"#cd152d",
+"#010101"
+],
+"michigan": [
+"#f3c300",
+"#f9e284"
+],
+"michigan-state": [
+"#163e35",
+"#a9b7b4"
+],
+"middle-tennessee": [
+"#005cb9",
+"#d7d7d7"
+],
+"milwaukee": [
+"#020201",
+"#656667"
+],
+"minnesota": [
+"#840117",
+"#ca6a24"
+],
+"mississippi": [
+"#ce152d",
+"#572847"
+],
+"mississippi-state": [
+"#551c25",
+"#d4d6da"
+],
+"mississippi-valley-state": [
+"#ed2d23",
+"#006a39"
+],
+"missouri": [
+"#eaa804",
+"#010100"
+],
+"missouri-state": [
+"#762123",
+"#e6d8d8"
+],
+"monmouth": [
+"#091f40",
+"#a4abaf"
+],
+"montana": [
+"#80561b",
+"#030201"
+],
+"montana-state": [
+"#bc955a",
+"#07215c"
+],
+"morehead-state": [
+"#fdcc01",
+"#8a8546"
+],
+"morgan-state": [
+"#e6bb83",
+"#013565"
+],
+"mount-st-marys": [
+"#022856",
+"#83744d"
+],
+"murray-state": [
+"#fec62c",
+"#0b223e"
+],
+"navy": [
+"#c5b683",
+"#334877"
+],
+"north-carolina-state": [
+"#020101",
+"#cb0d2c"
+],
+"nebraska": [
+"#cf152d",
+"#db5364"
+],
+"nevada": [
+"#011e41",
+"#455a74"
+],
+"nevada-las-vegas": [
+"#cd152d",
+"#040202"
+],
+"new-hampshire": [
+"#b9b9ba",
+"#0d1d41"
+],
+"new-haven": [
+"#1c2a47",
+"#fcc327"
+],
+"new-mexico": [
+"#a7a8a9",
+"#040404"
+],
+"new-mexico-state": [
+"#8a1d41",
+"#5b5b5b"
+],
+"new-orleans": [
+"#092f57",
+"#0256b8"
+],
+"niagara": [
+"#592d82",
+"#8767a4"
+],
+"nicholls-state": [
+"#c51230",
+"#d5d8da"
+],
+"njit": [
+"#012c6a",
+"#d4d7da"
+],
+"norfolk-state": [
+"#f9eab7",
+"#78b7a7"
+],
+"north-alabama": [
+"#592b82",
+"#c7b8d5"
+],
+"north-carolina": [
+"#79add3",
+"#14274b"
+],
+"north-carolina-at": [
+"#fbb727",
+"#a87a19"
+],
+"north-carolina-central": [
+"#97002e",
+"#b7b9ba"
+],
+"north-dakota": [
+"#14a063",
+"#57b88b"
+],
+"north-dakota-state": [
+"#115740",
+"#fcc62c"
+],
+"north-florida": [
+"#011a48",
+"#485875"
+],
+"north-texas": [
+"#02863f",
+"#47a773"
+],
+"northeastern": [
+"#1a1915",
+"#d8d8d7"
+],
+"northern-arizona": [
+"#011e41",
+"#f5b701"
+],
+"northern-colorado": [
+"#012956",
+"#ffeec6"
+],
+"northern-illinois": [
+"#010101",
+"#c10331"
+],
+"northern-iowa": [
+"#500d76",
+"#fbb501"
+],
+"northern-kentucky": [
+"#fdc526",
+"#030302"
+],
+"northwestern": [
+"#5b2d83",
+"#ded4e5"
+],
+"northwestern-state": [
+"#492f91",
+"#ed8e68"
+],
+"notre-dame": [
+"#0b2240",
+"#667587"
+],
+"oakland": [
+"#b8965b",
+"#010101"
+],
+"ohio": [
+"#144733",
+"#cda177"
+],
+"ohio-state": [
+"#c20f2f",
+"#020202"
+],
+"oklahoma": [
+"#a32135",
+"#c97c88"
+],
+"oklahoma-state": [
+"#fc5001",
+"#140c0d"
+],
+"old-dominion": [
+"#133564",
+"#979b9e"
+],
+"nebraska-omaha": [
+"#e51937",
+"#010101"
+],
+"oral-roberts": [
+"#0d1d41",
+"#a38c2a"
+],
+"oregon": [
+"#007550",
+"#4b9d83"
+],
+"oregon-state": [
+"#e04307",
+"#010100"
+],
+"pacific": [
+"#010101",
+"#e55204"
+],
+"penn-state": [
+"#0d1d41",
+"#394663"
+],
+"pennsylvania": [
+"#082c74",
+"#a32135"
+],
+"pepperdine": [
+"#19427e",
+"#f57e21"
+],
+"pittsburgh": [
+"#103595",
+"#fab827"
+],
+"portland": [
+"#35236b",
+"#beb8ce"
+],
+"portland-state": [
+"#104835",
+"#d8e1de"
+],
+"prairie-view": [
+"#040707",
+"#2e2147"
+],
+"presbyterian": [
+"#0161aa",
+"#ab1c43"
+],
+"princeton": [
+"#fc671a",
+"#010000"
+],
+"providence": [
+"#010101",
+"#a2a8ad"
+],
+"purdue": [
+"#cfb687",
+"#030303"
+],
+"ipfw": [
+"#d5d6d8",
+"#e3ba23"
+],
+"queens-nc": [
+"#00205b",
+"#65789b"
+],
+"quinnipiac": [
+"#feb71b",
+"#0b2240"
+],
+"radford": [
+"#c31e24",
+"#d3d4d5"
+],
+"rhode-island": [
+"#17315b",
+"#6db2e2"
+],
+"rice": [
+"#06205c",
+"#465a86"
+],
+"richmond": [
+"#0c2340",
+"#394c64"
+],
+"rider": [
+"#a42337",
+"#b95767"
+],
+"robert-morris": [
+"#041e42",
+"#cc0d2c"
+],
+"rutgers": [
+"#cf152d",
+"#42070f"
+],
+"sacramento-state": [
+"#00573d",
+"#b5985a"
+],
+"sacred-heart": [
+"#d71745",
+"#ec8ea4"
+],
+"saint-josephs": [
+"#030202",
+"#a32135"
+],
+"saint-louis": [
+"#003da6",
+"#c8c8c8"
+],
+"saint-marys-ca": [
+"#092f57",
+"#d03239"
+],
+"saint-peters": [
+"#093c71",
+"#b7c6d5"
+],
+"sam-houston-state": [
+"#fc5000",
+"#fda278"
+],
+"samford": [
+"#c8c9cc",
+"#747c8c"
+],
+"san-diego": [
+"#1a2857",
+"#6cb2e2"
+],
+"san-diego-state": [
+"#c50b2a",
+"#010101"
+],
+"san-francisco": [
+"#01543d",
+"#fdba2f"
+],
+"san-jose-state": [
+"#ffb71b",
+"#0234a0"
+],
+"santa-clara": [
+"#8a2433",
+"#b9959a"
+],
+"seattle": [
+"#ce133e",
+"#eba9b8"
+],
+"seton-hall": [
+"#0060a9",
+"#a8b2b8"
+],
+"siena": [
+"#026847",
+"#fec82d"
+],
+"south-alabama": [
+"#013d7d",
+"#d21747"
+],
+"south-carolina": [
+"#892332",
+"#000000"
+],
+"south-carolina-state": [
+"#90192b",
+"#24589b"
+],
+"south-carolina-upstate": [
+"#00833e",
+"#1d2d24"
+],
+"south-dakota": [
+"#c20f2f",
+"#030303"
+],
+"south-dakota-state": [
+"#f8d001",
+"#0335a1"
+],
+"south-florida": [
+"#046648",
+"#cfc393"
+],
+"southeast-missouri-state": [
+"#d91a32",
+"#020202"
+],
+"southeastern-louisiana": [
+"#1a5632",
+"#fcc426"
+],
+"southern": [
+"#59b2e7",
+"#fdc527"
+],
+"southern-california": [
+"#a32235",
+"#f8bc29"
+],
+"southern-illinois": [
+"#6f233b",
+"#a57786"
+],
+"southern-illinois-edwardsville": [
+"#da291c",
+"#b8965b"
+],
+"southern-indiana": [
+"#112c52",
+"#475b77"
+],
+"southern-methodist": [
+"#cf152d",
+"#de6372"
+],
+"southern-mississippi": [
+"#fec327",
+"#0b0d0c"
+],
+"southern-utah": [
+"#e40218",
+"#251e1f"
+],
+"st-bonaventure": [
+"#623b2a",
+"#846558"
+],
+"st-johns-ny": [
+"#c20f2f",
+"#0d1b2b"
+],
+"st-thomas-mn": [
+"#500d76",
+"#7a4897"
+],
+"stanford": [
+"#a32135",
+"#c16b78"
+],
+"stephen-f-austin": [
+"#60269e",
+"#c3acda"
+],
+"stetson": [
+"#0c5741",
+"#568a7b"
+],
+"stonehill": [
+"#592c82",
+"#010101"
+],
+"stony-brook": [
+"#b71237",
+"#78a6c8"
+],
+"syracuse": [
+"#e04307",
+"#0d213e"
+],
+"tarleton-state": [
+"#592b82",
+"#c8b8d5"
+],
+"temple": [
+"#a32135",
+"#d2939d"
+],
+"tennessee": [
+"#fd8204",
+"#feead6"
+],
+"tennessee-state": [
+"#011689",
+"#6975b9"
+],
+"tennessee-tech": [
+"#670298",
+"#fdcb02"
+],
+"tennessee-martin": [
+"#0b2240",
+"#57677c"
+],
+"texas": [
+"#b45a38",
+"#d8aa99"
+],
+"texas-am": [
+"#651c32",
+"#8b5565"
+],
+"texas-am-corpus-christi": [
+"#005cb9",
+"#00823c"
+],
+"texas-christian": [
+"#592b82",
+"#9274ad"
+],
+"texas-southern": [
+"#a4a8ac",
+"#794757"
+],
+"texas-state": [
+"#572a31",
+"#8b734b"
+],
+"texas-tech": [
+"#ce0d2d",
+"#4a0510"
+],
+"texas-pan-american": [
+"#fea300",
+"#142b47"
+],
+"toledo": [
+"#f9cd01",
+"#0c2341"
+],
+"towson": [
+"#040404",
+"#fdb61b"
+],
+"troy": [
+"#b1b1b1",
+"#8a2232"
+],
+"tulane": [
+"#046648",
+"#318cdd"
+],
+"tulsa": [
+"#123696",
+"#ce152d"
+],
+"alabama-birmingham": [
+"#185633",
+"#fbb91f"
+],
+"california-davis": [
+"#012857",
+"#aaa896"
+],
+"california-irvine": [
+"#0d2240",
+"#fdc628"
+],
+"california-riverside": [
+"#003ca6",
+"#feb61b"
+],
+"california-san-diego": [
+"#12284c",
+"#fbca00"
+],
+"california-santa-barbara": [
+"#1d0f60",
+"#a9b9dd"
+],
+"central-florida": [
+"#b4a169",
+"#020201"
+],
+"ucla": [
+"#0971ce",
+"#98c4ea"
+],
+"north-carolina-asheville": [
+"#211e1f",
+"#24559d"
+],
+"north-carolina-greensboro": [
+"#092147",
+"#ffb400"
+],
+"north-carolina-wilmington": [
+"#001f5c",
+"#007680"
+],
+"texas-arlington": [
+"#ed7524",
+"#013ca5"
+],
+"utah": [
+"#c32033",
+"#020202"
+],
+"utah-state": [
+"#0e253a",
+"#687279"
+],
+"dixie-state": [
+"#c20734",
+"#d75d7b"
+],
+"utah-valley": [
+"#01843d",
+"#48a674"
+],
+"texas-el-paso": [
+"#011d41",
+"#f28221"
+],
+"texas-san-antonio": [
+"#0a2240",
+"#e04403"
+],
+"valparaiso": [
+"#facd02",
+"#6b4024"
+],
+"vanderbilt": [
+"#cfaf72",
+"#020101"
+],
+"vermont": [
+"#134734",
+"#8d5828"
+],
+"villanova": [
+"#001f5c",
+"#3bb3e4"
+],
+"virginia": [
+"#15284c",
+"#f94515"
+],
+"virginia-commonwealth": [
+"#f4a606",
+"#030201"
+],
+"virginia-tech": [
+"#8a1d41",
+"#f5a976"
+],
+"wagner": [
+"#165447",
+"#e6e9e9"
+],
+"wake-forest": [
+"#cfb687",
+"#2c271c"
+],
+"washington": [
+"#300370",
+"#ceb586"
+],
+"washington-state": [
+"#a80532",
+"#c45775"
+],
+"weber-state": [
+"#3a185c",
+"#a6a6aa"
+],
+"west-virginia": [
+"#002857",
+"#96a7ba"
+],
+"western-carolina": [
+"#61289d",
+"#966a95"
+],
+"western-illinois": [
+"#f9cc01",
+"#57167b"
+],
+"western-kentucky": [
+"#ce152d",
+"#030202"
+],
+"western-michigan": [
+"#511b01",
+"#fdda23"
+],
+"wichita-state": [
+"#f9cc01",
+"#020201"
+],
+"william-mary": [
+"#095540",
+"#f4b223"
+],
+"winthrop": [
+"#f4b221",
+"#78232f"
+],
+"wisconsin": [
+"#c20f2f",
+"#030102"
+],
+"wofford": [
+"#020201",
+"#896d4a"
+],
+"wright-state": [
+"#030302",
+"#166837"
+],
+"wyoming": [
+"#503629",
+"#e6b636"
+],
+"xavier": [
+"#0c2340",
+"#a6aaaa"
+],
+"yale": [
+"#0b2240",
+"#b5bcc5"
+],
+"youngstown-state": [
+"#c8102e",
+"#020202"
+],
+"atl": [
+"#383a36",
+"#cc2030"
+],
+"chi": [
+"#408fdf",
+"#fccc02"
+],
+"dal": [
+"#032344",
+"#056796"
+],
+"gsv": [
+"#040304",
+"#d8d8d9"
+],
+"ind": [
+"#032147",
+"#ca062a"
+],
+"las": [
+"#552d84",
+"#fbb829"
+],
+"lva": [
+"#040404",
+"#a5a6a8"
+],
+"min": [
+"#0a213d",
+"#266193"
+],
+"nyl": [
+"#86cdbb",
+"#030303"
+],
+"pho": [
+"#3c286e",
+"#f94b0a"
+],
+"por": [
+"#3f3635",
+"#c6112f"
+],
+"sea": [
+"#2b5135",
+"#e9d51b"
+],
+"tor": [
+"#451f37",
+"#c6bbc2"
+],
+"was": [
+"#032245",
+"#c91535"
+],
+"ctsun": [
+"#f2713b",
+"#be2f38"
+]
+}

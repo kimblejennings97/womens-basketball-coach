@@ -1,4 +1,11 @@
-// Multiple save slots in IndexedDB (a save is ~1.5-3 MB, too big for localStorage). Index of slots cached in memory.
+// Multiple save slots in IndexedDB (a save is ~3-4 MB, too big for localStorage). Index of slots cached in memory.
+// Players are packed for storage: ratings and season stats as arrays in a fixed key order (unpacked on load).
+import { RATINGS } from '../data/gen.js';
+import { STAT_KEYS } from './season.js';
+const packP = p => { const q = { ...p, r: RATINGS.map(k => p.r[k]) }; if (p.st && p.st.g) q.st = STAT_KEYS.map(k => p.st[k]); else delete q.st; if (p.hist && !p.hist.length) delete q.hist; return q; };
+const unpackP = p => { if (Array.isArray(p.r)) p.r = Object.fromEntries(RATINGS.map((k, i) => [k, p.r[i]])); p.st = Array.isArray(p.st) ? Object.fromEntries(STAT_KEYS.map((k, i) => [k, p.st[i]])) : (p.st || {}); p.hist ||= []; return p; };
+export const packGame = G => JSON.stringify({ ...G, packed: 1, players: Object.fromEntries(Object.entries(G.players).map(([id, p]) => [id, packP(p)])) });
+export function unpackGame(json) { const G = JSON.parse(json); if (G.packed) { for (const p of Object.values(G.players)) unpackP(p); delete G.packed; } return G; }
 const DB = 'wbbCoach', STORE = 'saves', ACTIVE_KEY = 'wbbCoach.active';
 let db = null, index = [], writing = Promise.resolve();
 export const MAX_SLOTS = 30;
@@ -33,14 +40,14 @@ export async function loadLast() {
 export async function loadSlot(id) {
   if (!db) return null;
   const s = await idbGet(id); if (!s) return null;
-  const G = JSON.parse(s); G.slot = id; setActive(id); return G;
+  const G = unpackGame(s); G.slot = id; setActive(id); return G;
 }
 export function saveGame(G) {
   if (!db) return false;
   if (!G.slot) G.slot = 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   const m = meta(G), i = index.findIndex(x => x.id === G.slot);
   if (i >= 0) index[i] = m; else index.push(m);
-  const json = JSON.stringify(G), slot = G.slot; setActive(slot);
+  const json = packGame(G), slot = G.slot; setActive(slot);
   queue(() => idbPut(slot, json)); saveIndex();
   return true;
 }

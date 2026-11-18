@@ -28,7 +28,8 @@ const margins = [];
 for (let g = 0; g < N; g++) {
   const a = teams[Math.floor(rng() * teams.length)]; let b;
   const same = teams.filter(t => t.conf === a.conf && t !== a);
-  if (q.get('real') && same.length && rng() < 0.62) b = same[Math.floor(rng() * same.length)];
+  if (q.get('mirror')) b = { ...a, id: a.id + 'x' };
+  else if (q.get('real') && same.length && rng() < 0.62) b = same[Math.floor(rng() * same.length)];
   else do { b = teams[Math.floor(rng() * teams.length)]; } while (b === a);
   const G = new Game({ ...a, tactics: tactic ? { off: tactic, def: dtac || 'man' } : undefined }, { ...b, tactics: dtac ? { def: dtac } : undefined }, { league, seed: g * 7919 + 1 });
   const r = G.run(); games++; if (r.ot) ot++; if (r.winner === 0) homeW++;

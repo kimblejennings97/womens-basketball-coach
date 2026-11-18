@@ -32,8 +32,11 @@ Pipeline:
 - Positions: SR gives G/F/C; split into PG/SG/SF/PF/C by height, assists and 3PA per 40.
 - `tools/overrides.json` `{player_id: {rating: value}}` is applied last.
 
-Measured (2026-11-17): see the build output in the session log; spot checks — Sarah Strong (UConn) L 16.9, LSU's
-Fulwiley / Mikaylah Williams ~15.5, top of the WNBA ~16.5-18.
+Measured (2026-11-17, full build): 363 D1 teams / 5,003 players, 15 WNBA teams / 218 players (rosters over 12 go to
+free agency in game). NCAA L mean 7.8 (p10 5.8, p50 7.4, p90 10.1, max 16.9). Top: Sarah Strong 16.9, Hannah Hidalgo
+16.6, Mikayla Blakes 16.3, Madison Booker 16.2, Joyce Edwards 16.1. WNBA L mean 12.8 (p90 15.5): A'ja Wilson 18.4,
+Kelsey Mitchell 17.4, Breanna Stewart 17.2, Jackie Young / Caitlin Clark / Paige Bueckers 17.1. Free-throw prior for
+low-volume shooters: .71 NCAA, .79 WNBA.
 
 ## Turning real data off
 Before any public release: replace real.js with generated leagues and badges instead of logos (not built yet).

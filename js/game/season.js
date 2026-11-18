@@ -30,6 +30,7 @@ export function applyResult(G, g, res, keepBox = false) {
   for (const [T, won, home, pf, pa] of [[H, hw, true, res.score[0], res.score[1]], [A, !hw, false, res.score[1], res.score[0]]]) {
     const r = T.rec;
     if (g.kind === 'po' || g.kind === 'ncaa' || g.kind === 'ct') { (T.post ||= { w: 0, l: 0 }); won ? T.post.w++ : T.post.l++; }
+    if (g.kind === 'po') { const hc = G.coaches[T.coach]; if (hc) won ? hc.career.w++ : hc.career.l++; continue; }   // WNBA standings = regular season only
     won ? r.w++ : r.l++;
     if (conf) won ? r.cw++ : r.cl++;
     if (!g.neutral) { if (home) won ? r.hw++ : r.hl++; else won ? r.aw++ : r.al++; }

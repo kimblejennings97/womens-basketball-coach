@@ -43,7 +43,7 @@ export class Game {
   }
 
   makeSide(t, i) {
-    const players = t.players.map(p => ({ ...p, e: 1, form: this.rng.gauss() * (1 - p.r.cons / 24) * 0.12 }));
+    const players = t.players.map(p => ({ ...p, e: 1, form: this.rng.gauss() * (1 - p.r.cons / 24) * 0.05 }));
     const by = Object.fromEntries(players.map(p => [p.id, p]));
     const plan = t.plan || {};
     let starters = (plan.starters || []).filter(id => by[id]);
@@ -142,6 +142,9 @@ export class Game {
       return need(p) / 60 + (p.e - 0.86) * 14 + (on ? 1.4 : 0) + ovr(p) * 0.12;
     };
     const sc = new Map(S.players.map(p => [p, score(p)]));
+    // garbage time: a blowout late in the game empties the bench
+    const lead = Math.abs(S.score - this.s[1 - S.i].score), late4 = this.q >= L.quarters;
+    if (late4 && ((this.clock < 240 && lead >= 20) || (this.clock < 120 && lead >= 15))) for (const p of S.players) sc.set(p, avail(p) ? -ovr(p) + (S.on.includes(p) ? 1 : 0) : -1e9);
     const ranked = S.players.filter(avail).sort((a, b) => sc.get(b) - sc.get(a));
     const five = pickFive(ranked);
     if (five.length < 5) return;
@@ -305,13 +308,16 @@ export class Game {
     const astP = clamp(C.ast[zone] * ot.ast * (0.8 + avg(onO.filter(p => p !== shooter), p => p.r.pas * 0.6 + p.r.vis * 0.4) / 50), 0, 0.95);
     // Make probability (logit space).
     const sk = zoneSkill(shooter, zone) * (0.82 + 0.18 * shooter.e);
-    let x = logit(C.make[zone]) + 0.055 * (sk - C.ratingRef) - 0.04 * (dv - C.ratingRef) + shooter.form;
+    let x = logit(C.make[zone]) + C.skill * (0.055 * (sk - C.ratingRef) - 0.04 * (dv - C.ratingRef)) + shooter.form;
     x += (O.coach.off - 10) * 0.006 - (D.coach.def - 10) * 0.006;
     if (!this.neutral) x += O.i === 0 ? 0.035 : -0.035;
     if (ctx.trans) x += zone === 'rim' ? 0.35 : 0.1;
     if (D.tactics.press && !ctx.trans) x += 0.07;              // beaten the press: numbers going the other way
     x -= ctx.rushed;
     if (O.run >= 8) x += 0.05;
+    // rubber band: big leads relax, big deficits press (real margins shrink this way)
+    if (ctx.diff > 8) x -= Math.min(0.25, 0.016 * (ctx.diff - 8));
+    else if (ctx.diff < -8) x += Math.min(0.18, 0.011 * (-ctx.diff - 8));
     const clutch = this.q >= this.L.quarters && this.clock < 300 && Math.abs(ctx.diff) <= 5;
     if (clutch) x += 0.025 * (shooter.r.clu - 10);
     const willAst = rng() < astP;
@@ -362,7 +368,7 @@ export class Game {
     const rb = (p, k) => (p.r[k] * 0.55 + p.r.vert * 0.15 + p.r.str * 0.1 + (p.ht - 66) * 0.45) * (0.8 + 0.2 * p.e);
     const oR = avg(O.on, p => rb(p, 'oreb')), dR = avg(D.on, p => rb(p, 'dreb'));
     const pO = clamp((zone === 'ft' ? 0.13 - C.oreb : 0) + C.oreb + dt.oreb + 0.022 * (oR - dR) + (zone === 'three' ? 0.02 : 0) - (blocker ? -0.03 : 0), 0.08, 0.6);
-    const tm = rng() < 0.04;   // team rebound (out of bounds etc.)
+    const tm = rng() < (C.teamReb ?? 0.04);   // team rebound (out of bounds etc.)
     if (rng() < pO) {
       if (!tm) { const r = rng.weighted(O.on, p => Math.pow(rb(p, 'oreb'), 1.8)); O.box[r.id].orb++; O.tm.orb++; this.log('reb', O.i, `Offensive rebound ${r.name}`, { p: r.id, off: 1 }); }
       else { this.dead = true; this.log('reb', O.i, `Offensive rebound ${O.name}`, { off: 1 }); }
@@ -438,7 +444,7 @@ export function ovr(p) {
 export const posGroup = pos => (pos === 'PG' || pos === 'SG') ? 'G' : (pos === 'SF' || pos === 'PF') ? 'F' : 'C';
 const avg = (arr, f) => arr.reduce((s, x) => s + f(x), 0) / arr.length;
 function usageW(p, S, ot) {
-  let w = Math.exp(0.13 * (offSkill(p.r) - 10) * (ot.usage || 0.8) + 0.1 * (p.r.hdl - 10) * ((ot.hdl || 1) - 1) * 4);
+  let w = Math.exp(0.13 * (offSkill(p.r) - 10) * (ot.usage || 0.8) + 0.1 * (p.r.hdl - 10) * ((ot.hdl || 1) - 1) * 1.2);
   if (ot.big && (p.pos === 'C' || p.pos === 'PF')) w *= ot.big;
   return w * (0.75 + 0.25 * p.e);
 }

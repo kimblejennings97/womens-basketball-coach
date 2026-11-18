@@ -219,7 +219,19 @@ function renderPlayer() {
   return `<div class="card"><div class="hero">${t ? logo(t, 64) : ''}<div><h1>${esc(p.name)} <small class="muted">#${esc(p.num ?? '')}</small></h1><div class="sub">${p.pos} · ${fmtHt(p.ht)} · ${t ? tn(t.id, 16) : 'Free agent'}</div><div class="sub">${bio}</div>
       <div class="sub">Overall ${rt(ovr(p))} · Potential ${rt(p.pot)}${p.contract ? ` · Contract ${money(p.contract.sal)} through ${p.contract.thru}` : ''}${p.inj ? ` · <span class="neg">Injured: ${esc(p.inj.name)}, back ${fmtDay(p.inj.until)}</span>` : ''}</div></div></div>${prev}</div>
     <div class="card"><h2>Ratings</h2><div class="rgroups">${RATING_GROUPS.map(([g, ks]) => `<div><h3>${g}</h3>${ks.map(k => `<div class="attr"><span>${RATING_NAMES[k]}</span><div class="bar"><i class="${tier(p.r[k])}" style="width:${p.r[k] * 5}%"></i></div><b>${p.r[k]}</b></div>`).join('')}</div>`).join('')}</div></div>
+    ${gameLog(p)}
     <div class="card"><h2>Stats</h2>${rows ? `<div style="overflow-x:auto"><table class="tbl dense">${hdr}${rows}</table></div>` : '<p class="muted">No games played yet in this game.</p>'}${p.hi ? `<p class="hint">Career high: ${p.hi} points</p>` : ''}</div>`;
+}
+function gameLog(p) {
+  const rows = [];
+  for (const g of G.games) {
+    if (!g.box || (g.h !== p.team && g.a !== p.team)) continue;
+    const side = g.h === p.team ? 0 : 1, a = g.box.box[side][p.id]; if (!a) continue;
+    const b = S.expandLine(a), w = g.s[side] > g.s[1 - side];
+    rows.push(`<tr><td>${fmtDay(g.day)}</td><td>${side ? '@' : 'vs'} ${tn(side ? g.h : g.a, 16)}</td><td><a class="wlink ${w ? 'pos' : 'neg'}" data-act="box" data-v="${g.id}">${w ? 'W' : 'L'} ${g.s[side]}-${g.s[1 - side]}</a></td><td class="num">${Math.round(b.sec / 60)}</td><td class="num"><b>${b.pts}</b></td><td class="num">${b.orb + b.drb}</td><td class="num">${b.ast}</td><td class="num">${b.stl}</td><td class="num">${b.blk}</td><td class="num">${b.fgm}-${b.fga}</td><td class="num">${b.tpm}-${b.tpa}</td><td class="num">${b.ftm}-${b.fta}</td></tr>`);
+  }
+  if (!rows.length) return '';
+  return `<div class="card"><h2>Game log <small class="muted">(games with a box score)</small></h2><div style="overflow-x:auto;max-height:360px"><table class="tbl dense"><tr><th>Date</th><th>Opponent</th><th>Result</th><th class="num">MIN</th><th class="num">PTS</th><th class="num">REB</th><th class="num">AST</th><th class="num">STL</th><th class="num">BLK</th><th class="num">FG</th><th class="num">3PT</th><th class="num">FT</th></tr>${rows.reverse().join('')}</table></div></div>`;
 }
 function renderCoach() {
   const c = G.coaches[ui.arg]; if (!c) return '';
@@ -462,7 +474,7 @@ const ACTS = {
   'st-go': () => {
     const st = ui.start; if (!st.team) return;
     G = W.newGame({ seed: st.seed, coachName: st.name || 'Coach', mode: st.mode, team: st.team });
-    G.user.staffWindow = true;
+    G.user.staffWindow = true; S.updatePoll(G);
     ui.screen = 'home'; ui.pending = null; save(); render();
   },
   load: async v => { G = await loadSlot(v); ui.screen = 'home'; ui.pending = null; render(); },

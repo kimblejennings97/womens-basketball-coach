@@ -180,11 +180,11 @@ export function aiTactics(G, team) {
   Object.keys(sc).forEach((k, i) => { sc[k] += ((h >> (i * 3)) & 7) / 14; });
   const off = Object.entries(sc).sort((a, b) => b[1] - a[1])[0][0];
   const perim = avg(p => p.r.perD), inside = avg(p => p.r.postD, bigs.length ? bigs : ps);
-  const dsc = { man: 0.55 + (perim - lvl) * 0.2, z23: (inside - perim) * 0.25 + 0.2, z32: (perim - inside) * 0.2, matchup: (avg(p => p.r.iq) - lvl) * 0.2, z131: (avg(p => p.r.stl) - lvl) * 0.25 - 0.2 };
+  const dsc = { man: 1.0 + (perim - lvl) * 0.2, z23: (inside - perim) * 0.25 + 0.2, z32: (perim - inside) * 0.2, matchup: (avg(p => p.r.iq) - lvl) * 0.2, z131: (avg(p => p.r.stl) - lvl) * 0.25 - 0.2 };
   Object.keys(dsc).forEach((k, i) => { dsc[k] += ((h >> (i * 4 + 2)) & 7) / 12; });
   const def = Object.entries(dsc).sort((a, b) => b[1] - a[1])[0][0];
   const fast = avg(p => p.r.spd + p.r.sta) / 2 - lvl;
-  const press = fast > 0.8 && ((h >> 20) & 3) === 0;
+  const press = (fast > 0.4 || avg(p => p.r.stl) - lvl > 0.6) && ((h >> 20) & 3) < 2;   // deep, quick or ball-hawking teams often press
   return { ...defaultTactics(), off, def, press, pace: fast > 1 ? 'fast' : fast < -1 ? 'slow' : 'normal' };
 }
 

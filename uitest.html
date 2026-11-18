@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="css/style.css"></head><body>
+<div id="app"></div><pre id="o" style="display:none"></pre>
+<script type="module">
+// UI click-through for screenshots: ?shot=<screen or act:arg>&mode=pick|unknown&team=<id>&cont=<continues>&poss=<live possessions>. Errors land in #o.
+Object.defineProperty(window, 'indexedDB', { value: undefined });
+const errs = [];
+window.addEventListener('error', e => errs.push(e.message));
+window.addEventListener('unhandledrejection', e => errs.push(String(e.reason && e.reason.stack || e.reason)));
+const q = new URLSearchParams(location.search);
+try {
+  await import('./js/ui/app.js');
+  await new Promise(r => setTimeout(r, 300));
+  const D = window.__dbg;
+  const shot = q.get('shot') || 'home';
+  if (shot !== 'start') {
+    D.ui.start.mode = q.get('mode') || 'pick'; D.ui.start.team = q.get('team') || 'connecticut'; D.ui.start.name = 'Pat Summitt II'; D.ui.start.seed = 5;
+    D.ACTS['st-go']();
+    const n = +(q.get('cont') || 0);
+    for (let i = 0; i < n; i++) { D.ACTS.continue(); if (D.ui.screen === 'pregame' && i < n - 1) D.ACTS.simgame(); }
+    if (shot === 'live') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = 'turbo'; for (let i = 0; i < +(q.get('poss') || 60); i++) D.ui.live.game.step(); D.ui.live.ev = D.ui.live.game.ev.slice(); D.ui.live.paused = true; D.render(); }
+    else if (shot === 'livebox') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.paused = true; for (let i = 0; i < 100; i++) D.ui.live.game.step(); D.ui.live.tab = 'box'; D.render(); }
+    else if (shot !== 'home') { const [s, a] = shot.split(':'); if (D.ACTS[s]) D.ACTS[s](a, { dataset: {} }); else D.ACTS.go(s); }
+  }
+} catch (e) { errs.push(e.stack); }
+document.getElementById('o').textContent = errs.join('\n') || 'OK';
+document.querySelectorAll('script').forEach(s => s.remove());
+</script></body></html>

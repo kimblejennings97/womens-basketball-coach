@@ -20,8 +20,10 @@ Keep these files current: when you change a system, update its topic file (curre
 - Session 1 built steps 1-3 of the plan + most of step 4's college season: real data (363 D1 teams, 15 WNBA teams),
   derived ratings, calibrated engine, start screen (unknown coach with job offers / pick any team), screens, live game
   viewer with coaching, NCAA regular season, conference tournaments, Selection Sunday + 68-team NCAA tournament,
-  WNBA regular season. Not built yet: WNBA playoffs, offseason (draft, recruiting, NIL, portal, contracts, trades, coaching
-  carousel, development, aging), injuries, records / Hall of Fame, animation. See `docs/roadmap.md`.
+  WNBA regular season + playoffs, injuries, logos (376/378) + team colours. Not built yet: offseason (draft, recruiting, NIL, portal, contracts, trades, coaching
+  carousel, development, aging), records / Hall of Fame, animation. See `docs/roadmap.md`.
+- Engine calibrated on the real rosters (docs/engine.md table): within ~2% of real NCAA / WNBA averages on most lines.
+  Saves ~4.2 MB at season end (players packed as arrays).
 - Verified headlessly only (harnesses + Edge screenshots). The user has not played it yet; iPad is their test device.
 
 ## Decisions made with the user (don't re-litigate)
@@ -57,8 +59,10 @@ Often away: keep going and report at the end.
 
 ## How to test (no Node)
 - Serve: `py serve.py` (port 8766). Python is `py`.
-- Headless Edge from PowerShell, same recipe as wrestling-coach: logic tests in a throwaway `_t.html` that writes into
-  `<pre id="o">`, run with `--virtual-time-budget=600000 --dump-dom`. Screenshots: `_ui.html` (sets
-  `indexedDB = undefined`, drives `window.__dbg.ACTS`), dump the DOM, save as `_w.html`, screenshot that.
+- Headless Edge from PowerShell, same recipe as wrestling-coach: logic tests write into `<pre id="o">`, run with
+  `--virtual-time-budget=600000 --dump-dom`. `seasontest.html` = a full two-league season (schedules, poll, bracket,
+  playoffs, leaders, save size + pack roundtrip). Screenshots: `uitest.html?shot=<screen>&mode=&team=&cont=&poss=`
+  (sets `indexedDB = undefined`, drives `window.__dbg.ACTS`), dump the DOM, save as `_w.html`, screenshot that.
+  Throwaway pages are `_*.html` (gitignored); delete them afterwards.
 - `harness.html?league=ncaa|wnba&n=2000` (generated teams) and `&real=1` (real rosters) print engine averages next to
   the real league averages.

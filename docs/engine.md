@@ -31,7 +31,7 @@ rng (seed = save seed ^ hash(game id)), so a game can be re-simulated exactly wi
    Shooting fouls by zone (and-ones), blocks on rim / post (some mid) misses.
 6. Rebound: offensive chance = league base + zone defence penalty + 0.022 x (offensive vs defensive rebounding of the
    fives, size included); 4% team rebounds; put-backs come as short rim-heavy possessions.
-7. Free throws: `FT% = 0.47 + 0.024 x rating` (+ clutch late); a missed last FT is a live rebound.
+7. Free throws: `FT% = ftBase + 0.024 x rating` (ftBase .486 NCAA / .47 WNBA; the build maps FT% to ratings with .47, so NCAA free throws run 1.6 points hotter to match the league average) + clutch late; a missed last FT is a live rebound.
 
 ## Fatigue and rotation
 - Energy 0.3-1: drains on the floor (0.0007/s x pace x press x stamina), recovers on the bench, timeouts, media
@@ -51,4 +51,25 @@ AI teams pick a style from their roster (shooters -> 5-out, good post players ->
 `harness.html?league=ncaa|wnba&n=2000` (generated teams) / `&real=1` (real rosters). Targets = real per-team-game
 averages (tools/targets.py): 2025-26 NCAA D1 and the 2026 WNBA season.
 
-MEASURED_TABLE
+### Measured (2026-11-17, real rosters, `&real=1`; NCAA 4,000 games 62% same-conference, WNBA 2,000)
+| per team-game | NCAA sim | NCAA real | WNBA sim | WNBA real |
+|---|---|---|---|---|
+| Possessions | 70.4 | 70.9 | 82.8 | 82.3 |
+| Points | 65.2 | 66.3 | 87.0 | 87.1 |
+| FG% | .408 | .408 | .449 | .452 |
+| 3PA / 3P% | 19.6 / .309 | 20.0 / .310 | 24.8 / .340 | 25.5 / .340 |
+| FTA / FT% | 16.6 / .708 | 16.8 / .713 | 21.4 / .776 | 20.8 / .786 |
+| ORB% | .332 | .316 | .257 | .255 |
+| DRB | 23.7 | 25.2 | 26.2 | 25.0 |
+| AST / STL / BLK | 12.8 / 8.6 / 3.0 | 13.3 / 8.3 / 3.2 | 20.4 / 7.5 / 4.1 | 20.7 / 7.4 / 4.0 |
+| TOV / PF | 16.8 / 16.2 | 16.1 / 16.8 | 13.5 / 18.9 | 13.1 / 19.8 |
+
+- Home win% 55%. Average margin: NCAA 14.8, WNBA 15.1; identical teams (`&mirror=1`) still 13.0 (WNBA). That is
+  possession-level noise; a rubber band (leaders -0.016 logit per point over 8, trailers +0.011) and garbage-time benches
+  bring it down from 14.5. Real WNBA average margin not checked yet (needs game results) — open item.
+- Full season (all 378 teams, 5,587 games): leaders NCAA 28.3 ppg / 14.0 rpg / 7.0 apg, WNBA 23.3 ppg. Tactic mix:
+  man ~60%, 2-3 ~25%, pick and roll / post most common offences, ~15% press.
+- Speed: ~1 ms per game; a whole season (both leagues) simulates in a few seconds.
+
+Knobs: `RULES.<league>.cal` (make / mix / foul / tov / oreb / ast / hcMean / teamReb / skill), usage exponent 0.13 in
+`usageW`, rotation score in `autoSubs`, rubber band in `shoot`.
