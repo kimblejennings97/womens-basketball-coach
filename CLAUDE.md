@@ -26,9 +26,10 @@ Keep these files current: when you change a system, update its topic file (curre
   seasons and checks league health (rating levels, team-strength spread, margins, recruiting, save size): stable over 5.
 - Verified headlessly only (harnesses, multi-season runs, Edge screenshots of every new screen). The user has not played
   it yet; iPad is their test device. Saves ~4.4 MB after a season, +0.2 MB/season.
-- Hosting: GitHub Pages workflow (`.github/workflows/pages.yml`, builds `dist/` with tools/build_deploy.py) and an
-  optional Cloudflare `deploy.bat` like wrestling-coach. Remote `origin` = github.com/kimblejennings97/womens-basketball-coach
-  (the user creates the repo and pushes; `gh` is not installed here).
+- Hosting: live at https://kimblejennings97.github.io/womens-basketball-coach/ (GitHub Pages; every push to `main` runs
+  `.github/workflows/pages.yml`, which builds `dist/` with tools/build_deploy.py). Repo
+  github.com/kimblejennings97/womens-basketball-coach is PUBLIC (the user made it public for Pages on a free plan).
+  Optional Cloudflare `deploy.bat` kept. `gh` is not installed; the GitHub API works with the stored git credential.
 
 ## Decisions made with the user (don't re-litigate)
 - NCAA D1 only for college (no D2/NAIA for now). One shared world: both leagues simulated every season.
@@ -53,7 +54,7 @@ Often away: keep going and report at the end.
 ## Repo, git
 - Local git repo `C:\ClaudeProjects\womens-basketball-coach`, branch `main`. Claude may commit but cannot push. End commit
   messages with the Co-Authored-By line from the session's system reminder. Remote `origin`
-  https://github.com/kimblejennings97/womens-basketball-coach.git (user pushes).
+  https://github.com/kimblejennings97/womens-basketball-coach.git; the user asked Claude to push (2026-11-17).
 - `.gitignore`: `dist/`, `tools/cache/` (scraped third-party pages: never upload), `_*.html`, `.wrangler/`.
 - Deploy: push to main -> GitHub Actions builds `dist/` (index.html, css, js, assets) and publishes Pages (Settings ->
   Pages -> Source: GitHub Actions). `py tools/build_deploy.py` builds dist/ locally; `deploy.bat` = optional Cloudflare.
