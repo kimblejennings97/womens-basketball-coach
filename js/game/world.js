@@ -100,6 +100,7 @@ export function newGame(opts) {
   G.day = cal.start - 1; G.phase = 'regular';
   G.games = buildNcaaSchedule(G, rng).concat(buildWnbaSchedule(G, rng)).sort((a, b) => a.day - b.day);
   G.news.push({ day: G.day, text: `${uc.name} is the new head coach of ${tm.name}.`, me: 1 });
+  G.news.push({ day: G.day, text: tm.league === 'ncaa' ? 'Recruiting runs every week until May 20: build a board on the Recruiting screen (hours, offers, NIL), or let your staff handle it (Game menu). Unsigned spots are filled by walk-ons.' : 'Your front office: the draft is in April, free agency opens Feb 1, trades until the August deadline (Free agency / Trades / Draft screens).', me: 1 });
   return G;
 }
 
