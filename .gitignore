@@ -3,3 +3,4 @@ tools/cache/
 _*.html
 __pycache__/
 *.log
+.wrangler/

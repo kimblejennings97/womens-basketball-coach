@@ -4,6 +4,8 @@ import { Game } from '../engine/game.js';
 import { makeRng } from '../engine/rng.js';
 import { calendar, fmtDay } from './sched.js';
 import { gameTeam, teamStrength, userTeam, emptyRec } from './world.js';
+import * as OF from './offseason.js';
+import * as RC from './recruit.js';
 
 export const STAT_KEYS = ['g', 'gs', 'sec', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'];
 const BRACKET16 = [1, 16, 8, 9, 5, 12, 4, 13, 6, 11, 3, 14, 7, 10, 2, 15];
@@ -68,6 +70,7 @@ export const expandLine = arr => Object.fromEntries(BOXK.map((k, i) => [k, arr[i
 // Advance until something needs the user: their next game (returned, not played), Selection Sunday, end of a season,
 // or maxDays. Returns { stop, game?, day }.
 export function advance(G, { maxDays = 400, stopAtUserGame = true } = {}) {
+  const pend = pendingStop(G); if (pend) return { stop: pend, day: G.day };
   for (let i = 0; i < maxDays; i++) {
     const d = G.day + 1;
     const ev = dayEvents(G, d);
@@ -128,8 +131,39 @@ function dayEvents(G, d) {
   if (d >= cal.playoffs && !G.wpo && !G.games.some(g => g.lg === 'wnba' && g.kind === 'wnba' && !g.done)) startWnbaPlayoffs(G, d);
   if (G.wpo && !G.wpo.champ && G.wpo.r.length) advanceWnbaPlayoffs(G, d);
   for (const T of [...Object.values(G.tourneys || {}), G.bracket]) if (T) advanceTourney(G, T, d);
+  stop = offseasonEvents(G, d, cal) || stop;
   return stop;
 }
+// Something the user must do before the calendar can move on.
+export function pendingStop(G) {
+  if (G.user.fired) return 'jobs';
+  if (OF.userOnClock(G)) return 'draft';
+  return null;
+}
+// Offseason calendar (docs/offseason.md). Returns a stop for the user or null.
+function offseasonEvents(G, d, cal) {
+  let stop = null;
+  const lg = G.teams[userTeam(G)].league, rng = makeRng((G.seed ^ hash('off' + d)) >>> 0);
+  if (d >= cal.collegeEnd && G.bracket?.champ && G.colOff !== G.season) {
+    const offers = OF.collegeOffseason(G, d, powerRatings(G, 'ncaa'));
+    stop = offers || G.user.fired ? 'jobs' : lg === 'ncaa' ? 'college-offseason' : null;
+  }
+  if (G.carousel && d >= G.carousel.fill) OF.fillOpenings(G);
+  if (d === cal.portal) RC.openPortal(G, d);
+  const recruiting = d <= cal.recruitEnd || d <= cal.portalClose;
+  if (recruiting && RC.isRecruitDay(G, d) && (G.recruits || []).length) RC.recruitWeek(G, d);
+  if (d === cal.portalClose) RC.closePortal(G, rng);
+  if (d === cal.recruitEnd) RC.closeSigning(G, rng);
+  if (d === cal.faStart) { OF.faStart(G); if (lg === 'wnba' && !G.user.auto) stop = stop || 'fa'; }
+  if (d === cal.faOpen) OF.faOpen(G);
+  if (d > cal.faOpen && d < cal.wnbaCuts && weekdayOf(d) === 1) { OF.faWeek(G); OF.aiSignFA(G, rng, 12); }
+  if (d === cal.draft && !G.draft) { OF.startDraft(G); if (OF.runDraft(G) === 'user') stop = 'draft'; else if (lg === 'wnba') stop = stop || 'draft-done'; }
+  if (d === cal.wnbaCuts) OF.cutDown(G);
+  if (G.wpo?.champ && G.wOff !== G.season) { if (OF.wnbaOffseason(G, d) || G.user.fired) stop = 'jobs'; }
+  if (d >= cal.rollover && G.wOff === G.season && G.rolled !== G.season + 1) { OF.rollover(G); stop = stop || 'new-season'; }
+  return stop;
+}
+const weekdayOf = d => new Date(d * 86400000).getUTCDay();
 function afterDay(G, d) {
   const cal = calendar(G.season);
   if (d >= cal.start && (new Date(d * 86400000).getUTCDay() === 1)) updatePoll(G);

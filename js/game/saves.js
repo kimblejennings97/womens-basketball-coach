@@ -2,8 +2,10 @@
 // Players are packed for storage: ratings and season stats as arrays in a fixed key order (unpacked on load).
 import { RATINGS } from '../data/gen.js';
 import { STAT_KEYS } from './season.js';
-const packP = p => { const q = { ...p, r: RATINGS.map(k => p.r[k]) }; if (p.st && p.st.g) q.st = STAT_KEYS.map(k => p.st[k]); else delete q.st; if (p.hist && !p.hist.length) delete q.hist; return q; };
-const unpackP = p => { if (Array.isArray(p.r)) p.r = Object.fromEntries(RATINGS.map((k, i) => [k, p.r[i]])); p.st = Array.isArray(p.st) ? Object.fromEntries(STAT_KEYS.map((k, i) => [k, p.st[i]])) : (p.st || {}); p.hist ||= []; return p; };
+const packH = h => h.map(x => ({ ...x, st: Array.isArray(x.st) ? x.st : STAT_KEYS.map(k => x.st[k]) }));
+const unpackH = h => h.map(x => ({ ...x, st: Array.isArray(x.st) ? Object.fromEntries(STAT_KEYS.map((k, i) => [k, x.st[i]])) : x.st }));
+const packP = p => { const q = { ...p }; if (p.r) q.r = RATINGS.map(k => p.r[k]); if (p.hist?.length) q.hist = packH(p.hist); if (p.st && p.st.g) q.st = STAT_KEYS.map(k => p.st[k]); else delete q.st; if (p.hist && !p.hist.length) delete q.hist; return q; };
+const unpackP = p => { if (Array.isArray(p.r)) p.r = Object.fromEntries(RATINGS.map((k, i) => [k, p.r[i]])); p.st = Array.isArray(p.st) ? Object.fromEntries(STAT_KEYS.map((k, i) => [k, p.st[i]])) : (p.st || {}); p.hist = unpackH(p.hist || []); return p; };
 export const packGame = G => JSON.stringify({ ...G, packed: 1, players: Object.fromEntries(Object.entries(G.players).map(([id, p]) => [id, packP(p)])) });
 export function unpackGame(json) { const G = JSON.parse(json); if (G.packed) { for (const p of Object.values(G.players)) unpackP(p); delete G.packed; } return G; }
 const DB = 'wbbCoach', STORE = 'saves', ACTIVE_KEY = 'wbbCoach.active';

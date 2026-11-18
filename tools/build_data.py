@@ -128,6 +128,7 @@ def ncaa():
         if m and c.get('srs'):
             srs26[m.group(1)] = num(c['srs'])
     teams, stats, roster = [], collections.defaultdict(list), {}
+    prev_cls = {}
     used = set()
     for slug, short in schools:
         p27 = get(f'{SR}/cbb/schools/{slug}/women/2027.html')
@@ -153,9 +154,18 @@ def ncaa():
             stats[r['_id']].append(dict(season=2027, team=slug, srs=t['srs'], **statrow(r)))
         p26 = get(f'{SR}/cbb/schools/{slug}/women/2026.html')
         if p26:
-            for r in table(uncomment(p26), 'players_totals'):
+            h26p = uncomment(p26)
+            for r in table(h26p, 'roster'):
+                prev_cls[r['_id']] = (r.get('class') or '').upper()[:2]
+            for r in table(h26p, 'players_totals'):
                 stats[r['_id']].append(dict(season=2026, team=slug, srs=srs26.get(slug, -12.0), **statrow(r)))
         teams.append(t)
+    # 5-in-5 eligibility: a senior who was already a senior (or graduate) on a 2025-26 roster is in year 5+ -> GR (5th year)
+    n5 = 0
+    for pid, p in roster.items():
+        if p['cls'] == 'GR' or (p['cls'] == 'SR' and prev_cls.get(pid) in ('SR', 'GR')):
+            p['cls'] = 'GR'; n5 += 1
+    print('5th-year players:', n5)
     return teams, roster, stats
 
 

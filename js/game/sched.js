@@ -17,14 +17,23 @@ export function calendar(Y) {
   let selection = dayOf(Y, 3, 12); while (weekday(selection) !== 0) selection++;   // Selection Sunday: first Sunday on/after Mar 12
   const ct = conf[conf.length - 1] + 4;                            // conference tournaments start
   const ncaa = { ff: selection + 3, r1: selection + 5, r2: selection + 7, s16: selection + 12, e8: selection + 14, f4: selection + 19, ch: selection + 21 };
+  const collegeEnd = ncaa.ch + 1;
+  let draft = nthWeekday(Y, 4, 1, 2);                              // second Monday of April, at least 4 days after the final
+  while (draft < collegeEnd + 4) draft += 7;
   return {
     Y, start, nonconf, conf, ct, selection, ncaa,
-    collegeEnd: ncaa.ch + 1,
-    draft: nthWeekday(Y, 4, 1, 2),                                 // second Monday of April
+    collegeEnd,
+    portal: collegeEnd + 3, portalClose: collegeEnd + 45,          // transfer portal window (entries, then signings)
+    recruitEnd: dayOf(Y, 5, 20),                                   // end of the late signing period
+    faStart: dayOf(Y, 1, 21), faOpen: dayOf(Y, 2, 1),              // WNBA re-sign window, then the open market
+    deadline: dayOf(Y, 8, 5),                                      // WNBA trade deadline
+    draft,
+    wnbaCuts: nthWeekday(Y, 5, 5, 2) - 3,                          // rosters down to 12
     wnbaStart: nthWeekday(Y, 5, 5, 2),                             // second Friday of May
     wnbaEnd: nthWeekday(Y, 9, 0, 2),
     playoffs: nthWeekday(Y, 9, 0, 2) + 5,
     nextStart: nthWeekday(Y, 11, 2, 1),
+    rollover: nthWeekday(Y, 11, 2, 1) - 4,                         // new season: development, classes, schedules
   };
 }
 

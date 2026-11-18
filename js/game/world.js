@@ -5,12 +5,15 @@ import { ovr as engOvr, autoMinutes, posGroup } from '../engine/game.js';
 import { defaultTactics } from '../engine/rules.js';
 import { genPlayer, randomName, setNextId } from '../data/gen.js';
 import { buildNcaaSchedule, buildWnbaSchedule, calendar } from './sched.js';
+import * as RC from './recruit.js';
+import * as OF from './offseason.js';
 
 export const VERSION = 1;
 export const COACH_KEYS = ['off', 'def', 'gm', 'rec', 'dev', 'mot'];
 export const COACH_NAMES = { off: 'Offense', def: 'Defense', gm: 'Game management', rec: 'Recruiting', dev: 'Development', mot: 'Motivation' };
 export const ASST_ROLES = { off: 'Offensive coordinator', def: 'Defensive coordinator', rec: 'Recruiting coordinator', dev: 'Player development' };
-export const CLASS_NAMES = { FR: 'Freshman', SO: 'Sophomore', JR: 'Junior', SR: 'Senior', GR: 'Graduate' };
+export const CLASS_NAMES = { FR: 'Freshman', SO: 'Sophomore', JR: 'Junior', SR: 'Senior', GR: '5th year', HS: 'High school senior' };
+export const CLASS_SHORT = { FR: 'Fr', SO: 'So', JR: 'Jr', SR: 'Sr', GR: '5th', HS: 'HS' };
 export const MAX_ROSTER = { ncaa: 15, wnba: 12 };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const r20 = x => clamp(Math.round(x), 1, 20);
@@ -31,6 +34,7 @@ export function newGame(opts) {
   for (const [id, p] of Object.entries(PLAYERS)) {
     const r = {}; RATING_KEYS.forEach((k, i) => { r[k] = p.r[i]; });
     const q = { ...p, r, real: 1, inj: null, st: {}, hist: [] };
+    if (p.cls && !CLASS_SHORT[p.cls]) q.cls = 'JR';
     delete q.L;
     G.players[id] = q;
   }
@@ -74,7 +78,18 @@ export function newGame(opts) {
   const old = tm.coach && G.coaches[tm.coach];
   if (old) { old.team = null; old.contract = null; old.hist.push({ season: G.season, team: tm.id, note: 'replaced' }); }
   hireHead(G, uc, tm, unknown ? 3 : 4);
-  for (const t of Object.values(G.teams)) t.tactics = aiTactics(G, t);
+  for (const t of Object.values(G.teams)) { t.tactics = aiTactics(G, t); t.p0 = t.prestige; }
+  G.presQ = Object.fromEntries(['ncaa', 'wnba'].map(lg => [lg, Object.values(G.teams).filter(t => t.league === lg).map(t => t.prestige).sort((a, b) => a - b)]));
+  // real college players: potential = where development takes them by year 5 (the build's class bumps are cross-sectional)
+  for (const p of Object.values(G.players)) if (p.league === 'ncaa' && p.pot != null) p.pot = Math.max(Math.round(ovr(p)), Math.round(ovr(p) + (p.pot - ovr(p)) * 0.65));
+  G.day = calendar(G.season).start - 1;
+  // NIL deals, the first recruiting class, the 2027 draft lottery (real 2026 WNBA records)
+  RC.initNil(G);
+  RC.genClass(G, rng); RC.precommit(G, rng);
+  const realRec = Object.fromEntries(TEAMS.filter(t => t.league === 'wnba').map(t => [t.id, { w: t.rec?.[0] ?? 22, l: t.rec?.[1] ?? 22 }]));
+  const top8 = Object.keys(realRec).sort((a, b) => realRec[b].w / (realRec[b].w + realRec[b].l) - realRec[a].w / (realRec[a].w + realRec[a].l)).slice(0, 8);
+  OF.runLottery(G, t => realRec[t.id], top8, G.season, rng);
+  G.draftPool = [];
   // calendar + schedules
   const cal = calendar(G.season);
   G.day = cal.start - 1; G.phase = 'regular';

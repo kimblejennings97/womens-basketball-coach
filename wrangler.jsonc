@@ -1,0 +1,9 @@
+// Optional Cloudflare hosting (static files only). ONLY dist/ is uploaded: never point "directory" at the project root
+// (tools/cache holds scraped third-party pages that must not be published).
+{
+  "name": "womens-basketball-coach",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./dist", "not_found_handling": "404-page" },
+  "workers_dev": true,
+  "preview_urls": false
+}

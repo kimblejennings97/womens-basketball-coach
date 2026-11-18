@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><body><pre id="o">running</pre>
+<!-- Multi-season test: ?seasons=3&team=connecticut&auto=1&seed=5. Runs the whole calendar (offseasons included) with the user's team on
+     auto, and prints league health per season: rating levels, roster sizes, recruiting, portal, draft, free agency, carousel, save size. -->
+<script type="module">
+const o = document.getElementById('o'), out = [], q = new URLSearchParams(location.search);
+const log = s => { out.push(s); o.textContent = out.join('\n'); };
+try {
+  const W = await import('./js/game/world.js'), S = await import('./js/game/season.js'), SC = await import('./js/game/sched.js'), OF = await import('./js/game/offseason.js'), RC = await import('./js/game/recruit.js'), SV = await import('./js/game/saves.js');
+  const team = q.get('team') || 'connecticut', N = +(q.get('seasons') || 2);
+  const G = W.newGame({ seed: +(q.get('seed') || 5), coachName: 'Test', mode: 'pick', team });
+  G.user.auto = q.get('auto') !== '0';
+  const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0, f = x => x.toFixed(2);
+  const health = tag => {
+    const lg = l => Object.values(G.teams).filter(t => t.league === l);
+    const top8 = t => t.roster.map(id => W.ovr(G.players[id])).sort((a, b) => b - a).slice(0, 8);
+    const nc = lg('ncaa'), wn = lg('wnba');
+    const sizes = ts => { const s = ts.map(t => t.roster.length); return `${Math.min(...s)}-${Math.max(...s)} avg ${f(avg(s))}`; };
+    const cls = {}; for (const t of nc) for (const id of t.roster) { const c = G.players[id].cls; cls[c] = (cls[c] || 0) + 1; }
+    const wAge = wn.flatMap(t => t.roster.map(id => G.players[id].age));
+    const pay = wn.map(t => OF.payroll(G, t));
+    const pres = nc.map(t => t.prestige);
+    const byc = {}; for (const t of nc) for (const id of t.roster) { const p = G.players[id]; (byc[p.cls] ||= []).push(W.ovr(p)); }
+    log(`   NCAA ovr by class: ` + ['FR', 'SO', 'JR', 'SR', 'GR'].map(c => `${c} ${f(avg(byc[c] || []))}`).join(' ') + ` | WNBA ovr by age: ` + [[18, 23], [24, 26], [27, 29], [30, 32], [33, 45]].map(([a, b]) => { const v = wn.flatMap(t => t.roster.map(id => G.players[id])).filter(p => p.age >= a && p.age <= b).map(W.ovr); return `${a}-${b} n${v.length} ${f(avg(v))}`; }).join(' '));
+    log(`[${tag}] ${SC.fmtDay(G.day, true)} season ${G.season} | NCAA top8 ovr ${f(avg(nc.flatMap(top8)))} best ${f(Math.max(...nc.flatMap(top8)))} rosters ${sizes(nc)} classes ${JSON.stringify(cls)} prestige avg ${f(avg(pres))} max ${f(Math.max(...pres))}`);
+    log(`   WNBA top8 ovr ${f(avg(wn.flatMap(top8)))} best ${f(Math.max(...wn.flatMap(top8)))} rosters ${sizes(wn)} age ${f(avg(wAge))} payroll ${Math.min(...pay)}-${Math.max(...pay)} FA ${G.fa.length} | players ${Object.keys(G.players).length} gone ${Object.values(G.players).filter(p => p.league === 'gone').length} recruits ${(G.recruits || []).length} coaches ${Object.keys(G.coaches).length}`);
+  };
+  health('start');
+  const L = G.lottery; log('lottery ' + L.draft + ': ' + L.r1.map((id, i) => `${i + 1}.${G.teams[id].abbr}`).join(' ') + ' odds ' + L.odds.map(([id, o]) => G.teams[id].abbr + o).join(' '));
+  const t0 = performance.now();
+  const stops = [];
+  let seasonsDone = 0, guard = 0;
+  while (seasonsDone < N && guard++ < 400) {
+    const r = S.advance(G, { stopAtUserGame: false });
+    stops.push(r.stop + '@' + SC.fmtDay(r.day));
+    if (r.stop === 'jobs') { if (G.user.fired) OF.acceptJob(G, G.user.offers[0].tid); else OF.declineOffers(G); }
+    if (r.stop === 'college-offseason') {
+      const cal = SC.calendar(G.season);
+      log(`-- college offseason ${G.season}: champion ${G.teams[G.bracket.champ].name}; draft pool ${G.draftPool.length}; open jobs ${G.carousel ? G.carousel.open.length : 0}`);
+      const u = G.teams[team], c = G.coaches[u.coach]; log(`   user coach ${c.name} rep ${c.rep} ratings ${JSON.stringify(c.r)} perf ${JSON.stringify(c.perf)}`);
+      const hi = Object.values(G.teams).filter(t => t.league === 'ncaa').sort((a, b) => b.prestige - a.prestige).slice(0, 8).map(t => `${t.short} ${t.prestige}`); log('   prestige top: ' + hi.join(', '));
+      void cal;
+    }
+    if (r.stop === 'draft-done' || (r.stop === null && G.draft?.done && !G._dl)) { }
+    if (G.draft?.done && !G._dl) { G._dl = 1; log(`-- draft ${G.draft.season}: ` + G.draft.picks.slice(0, 12).map(([t, p], i) => `${i + 1}.${G.teams[t].abbr} ${G.players[p]?.name} (${G.players[p]?.college}, ${W.ovrI(G.players[p])})`).join('; '));
+      const portal = (G.recruits || []).filter(id => G.players[id]?.rec?.portal).length; log(`   portal still open: ${portal}`); }
+    if (r.stop === 'new-season') {
+      delete G._dl; seasonsDone++;
+      // recruiting outcome of the class that just joined: freshmen by team prestige tier
+      const nc = Object.values(G.teams).filter(t => t.league === 'ncaa');
+      const tier = t => t.prestige >= 15 ? 'p15+' : t.prestige >= 11 ? 'p11-15' : t.prestige >= 7 ? 'p7-11' : 'p<7';
+      const by = {}; for (const t of nc) for (const id of t.roster) { const p = G.players[id]; if (p.cls === 'FR' && p.stars) { (by[tier(t)] ||= []).push(p.stars); } }
+      log('   freshmen stars by tier: ' + Object.entries(by).map(([k, v]) => `${k} n${v.length} avg ${f(avg(v))} 5*:${v.filter(x => x === 5).length}`).join(' | '));
+      const tr = Object.values(G.players).filter(p => p.league === 'ncaa' && p.from).length; void tr;
+      health('new season');
+      const json = SV.packGame(G); log(`   save ${(json.length / 1e6).toFixed(2)} MB`);
+      log(`   news (user): ` + G.news.filter(n => n.me).slice(-8).map(n => n.text).join(' | '));
+    }
+    if (r.stop === 'wnba-champion') { const tr = Object.values(G.players).filter(p => p.league === 'ncaa' && p.from).length; log(`-- ${G.season} WNBA champion ${G.teams[G.wpo.champ].name}; transfers landed ${tr}; ` + G.news.filter(n => /portal opens|carousel|lottery/.test(n.text)).slice(-4).map(n => n.text).join(' | ')); }
+    if (r.stop === 'max') break;
+  }
+  log(`sim ${(performance.now() - t0) / 1000 | 0}s stops: ${stops.filter(s => !s.startsWith('null')).join(' ')}`);
+  const G2 = SV.unpackGame(SV.packGame(G)); log('pack roundtrip players ' + Object.keys(G2.players).length);
+} catch (e) { log('ERR ' + e.stack); }
+log('DONE');
+</script>
