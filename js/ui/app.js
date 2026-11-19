@@ -5,7 +5,7 @@ import { RATING_NAMES, RATING_GROUPS, fmtHt, randomName } from '../data/gen.js';
 import { makeRng } from '../engine/rng.js';
 import * as W from '../game/world.js';
 import * as S from '../game/season.js';
-import { calendar, fmtDay, seasonLabel } from '../game/sched.js';
+import { calendar, fmtDay, seasonLabel, dayOf, dateOf, weekday } from '../game/sched.js';
 import { initSaves, loadLast, loadSlot, saveGame, deleteSlot, listSaves } from '../game/saves.js';
 import * as OF from '../game/offseason.js';
 import * as RC from '../game/recruit.js';
@@ -48,7 +48,7 @@ const K = n => '$' + Math.round((n || 0) / 1000) + 'K';
 const money = n => '$' + (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : Math.round(n / 1000) + 'K');
 const stLine = st => st && st.g ? `${f1(st.pts / st.g)} pts, ${f1((st.orb + st.drb) / st.g)} reb, ${f1(st.ast / st.g)} ast` : '';
 function save() { if (G) saveGame(G); }
-function go(screen, arg = null) { ui.screen = screen; ui.arg = arg; ui.msg = ui.msg && screen === ui.screen ? ui.msg : ''; render(); window.scrollTo(0, 0); }
+function go(screen, arg = null) { const keep = ui.msg && screen === ui.screen; ui.screen = screen; ui.arg = arg; ui.msg = keep ? ui.msg : ''; render(); window.scrollTo(0, 0); }
 
 // ---------------------------------------------------------------- render root
 function render() {
@@ -56,20 +56,23 @@ function render() {
   if (ui.screen === 'live' && ui.live) { $app.innerHTML = topbar() + `<div class="content">${renderLive()}</div>`; attachCourt(); return; }
   const lgNav = me().league === 'ncaa' ? [['recruit', 'Recruiting']] : [['fa', 'Free agency'], ['trade', 'Trades']];
   const nOff = (G.user.offers || []).length;
-  const nav = [['home', 'Home'], ['roster', 'Roster'], ['tactics', 'Tactics'], ['schedule', 'Schedule'], ['standings', 'Standings'], ['rankings', 'Rankings'], ['bracket', 'Tournaments'], ['stats', 'Stats'], ['teams', 'Teams'], ...lgNav, ['draft', 'Draft'], ['history', 'History'], ['staff', 'Staff'], ...(nOff ? [['jobs', `Job offers (${nOff})`]] : [])];
+  const nUnread = (G.inbox || []).filter(m => !m.read).length;
+  const nav = [['home', 'Home'], ['inbox', `Inbox${nUnread ? ` (${nUnread})` : ''}`], ['calendar', 'Calendar'], ['roster', 'Roster'], ['tactics', 'Tactics'], ['schedule', 'Schedule'], ['standings', 'Standings'], ['rankings', 'Rankings'], ['bracket', 'Tournaments'], ['stats', 'Stats'], ['teams', 'Teams'], ...lgNav, ['draft', 'Draft'], ['history', 'History'], ['staff', 'Staff'], ...(nOff ? [['jobs', `Job offers (${nOff})`]] : [])];
   const body = ({ home: renderHome, roster: renderRoster, tactics: renderTactics, schedule: renderSchedule, standings: renderStandings, rankings: renderRankings, bracket: renderBracket,
     stats: renderStats, teams: renderTeams, staff: renderStaff, team: renderTeam, player: renderPlayer, coach: renderCoach, box: renderBox, pregame: renderPregame, menu: renderMenu,
-    recruit: renderRecruit, draft: renderDraft, history: renderHistory, fa: renderFA, trade: renderTrade, jobs: renderJobs }[ui.screen] || renderHome)();
+    recruit: renderRecruit, draft: renderDraft, history: renderHistory, fa: renderFA, trade: renderTrade, jobs: renderJobs, inbox: renderInbox, calendar: renderCalendar, scout: renderScout }[ui.screen] || renderHome)();
   $app.innerHTML = topbar() + `<div class="layout"><nav>${nav.map(([k, l]) => `<a class="${ui.screen === k ? 'on' : ''}" data-act="go" data-v="${k}">${l}</a>`).join('')}<hr><a data-act="go" data-v="menu" class="off2">Game menu</a></nav><div class="content">${ui.msg ? `<div class="card">${ui.msg}</div>` : ''}${body}</div></div>`;
 }
 function topbar() {
   const t = me(), c = myCoach();
   const ng = S.nextUserGame(G);
-  let next = 'Continue';
+  let next = 'Continue', ns;
   const pend = S.pendingStop(G);
   if (ui.pending) next = 'Go to game';
   else if (pend === 'jobs') next = 'Choose a new job';
   else if (pend === 'draft') next = 'You are on the clock';
+  else if (G.scoutDay === G.day + 1) next = `Continue ▶ <small style="font-weight:400">play today's tournament games</small>`;
+  else if ((ns = S.nextStop(G))) next = `Continue ▶ <small style="font-weight:400">${fmtDay(ns.day)} ${esc(ns.label)}</small>`;
   else if (ng) next = `Continue ▶ <small style="font-weight:400">${fmtDay(ng.day)} ${ng.h === t.id ? 'vs' : '@'} ${esc(teamName(G.teams[ng.h === t.id ? ng.a : ng.h]))}</small>`;
   const live = ui.screen === 'live';
   return `<div class="top">${t ? `<span class="tn">${logo(t, 30)}<span class="brand">${esc(t.name)}</span></span><span class="rec">${rec(t)}${t.league === 'ncaa' ? ` (${t.rec.cw}-${t.rec.cl})` : ''}</span>` : '<span class="brand">Unemployed</span>'}
@@ -125,19 +128,86 @@ function renderHome() {
   </div>`;
 }
 function upcoming() {
-  const out = [];
-  for (const Y of [G.season, G.season + 1]) {
-    const c = calendar(Y);
-    out.push([c.start, `${seasonLabel(Y)} college season tips off`], [c.ct, 'Conference tournaments'], [c.selection, 'Selection Sunday'], [c.ncaa.f4, 'Final Four'], [c.collegeEnd, 'College offseason: departures, coaching carousel'],
-      [c.portal, 'Transfer portal opens'], [c.draft, `${Y} WNBA draft`], [c.recruitEnd, 'Signing period ends'], [c.portalClose, 'Transfer portal closes'], [c.faStart, 'WNBA re-signing window'], [c.faOpen, 'WNBA free agency opens'],
-      [c.wnbaCuts, 'WNBA roster cuts (12)'], [c.wnbaStart, `${Y} WNBA season opens`], [c.deadline, 'WNBA trade deadline'], [c.playoffs, 'WNBA playoffs'], [c.rollover, 'New season: development, freshmen arrive']);
-  }
-  return out.filter(([d]) => d > G.day).sort((a, b) => a[0] - b[0]).slice(0, 6);
+  const lg = me().league;
+  return allKeyDates().filter(k => k.day > G.day && (k.lg === 'both' || k.lg === lg || k.stop === 'both' || k.stop === lg) && (k.key !== 'scout' || k.stop)).map(k => [k.day, k.label]).slice(0, 6);
 }
 const kindLabel = g => ({ conf: '<span class="pill">conference</span>', ct: '<span class="pill">conf. tournament</span>', ncaa: '<span class="pill">NCAA Tournament</span>', po: '<span class="pill">playoffs</span>' }[g.kind] || '');
 function standingsTable(rows, lg) {
   return `<table class="tbl"><tr><th></th><th>Team</th>${lg === 'ncaa' ? '<th class="num">Conf</th>' : ''}<th class="num">W-L</th><th class="num">Diff</th><th class="num">Strk</th></tr>
     ${rows.map((t, i) => `<tr class="${W.isUserTeam(G, t.id) ? 'me' : ''}"><td>${i + 1}</td><td>${tn(t.id)}</td>${lg === 'ncaa' ? `<td class="num">${t.rec.cw}-${t.rec.cl}</td>` : ''}<td class="num">${rec(t)}</td><td class="num ${t.rec.pf - t.rec.pa >= 0 ? 'pos' : 'neg'}">${t.rec.w + t.rec.l ? f1((t.rec.pf - t.rec.pa) / (t.rec.w + t.rec.l)) : '-'}</td><td class="num">${t.rec.strk > 0 ? 'W' + t.rec.strk : t.rec.strk < 0 ? 'L' + -t.rec.strk : '-'}</td></tr>`).join('')}</table>`;
+}
+
+// ---------------------------------------------------------------- inbox
+const MAIL_KINDS = [['all', 'All'], ['result', 'Results'], ['event', 'Events'], ['news', 'News'], ['invite', 'Invites']];
+function renderInbox() {
+  const f = ui.tab.ib || 'all', all = G.inbox || [];
+  const items = all.filter(m => f === 'all' || m.kind === f).slice().reverse().slice(0, 120);
+  const kind = k => `<span class="pill k-${k}">${(MAIL_KINDS.find(x => x[0] === k) || [k, k])[1].replace(/s$/, '')}</span>`;
+  const row = m => {
+    const g = m.g && S.gameById(G, m.g);
+    const extra = g ? `<a class="wlink" data-act="box" data-v="${g.id}">Box score</a>`
+      : m.inv ? (m.answered ? `<span class="muted">${m.answered === 'yes' ? 'Accepted' : 'Declined'}</span>` : m.season === G.season ? `<button class="small" data-act="invyes" data-v="${m.id}">Accept</button> <button class="small secondary" data-act="invno" data-v="${m.id}">Decline</button>` : '<span class="muted">Expired</span>') : '';
+    return `<div class="mail ${m.read ? '' : 'unread'}"><span class="muted md">${fmtDay(m.day)}</span>${kind(m.kind)}<span class="mt">${m.html ? m.text : esc(m.text)}</span><span class="mx">${extra}</span></div>`;
+  };
+  const html = `<div class="card"><h2>Inbox</h2><div class="tabs">${MAIL_KINDS.map(([k, l]) => { const n = all.filter(m => !m.read && (k === 'all' || m.kind === k)).length; return `<button class="${f === k ? 'on' : ''}" data-act="tab" data-k="ib" data-v="${k}">${l}${n ? ` (${n})` : ''}</button>`; }).join('')}</div>
+    ${items.map(row).join('') || '<p class="muted">Nothing here yet.</p>'}</div>`;
+  for (const m of all) if (!m.inv || m.answered || m.season !== G.season) m.read = 1;   // seen (an open invite stays unread)
+  return html;
+}
+
+// ---------------------------------------------------------------- calendar
+const calMonth = () => { if (ui.tab.calM != null) return ui.tab.calM; const d = dateOf(G.day + 1); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+const allKeyDates = () => [...S.keyDates(G, G.season - 1), ...S.keyDates(G), ...S.keyDates(G, G.season + 1)].sort((a, b) => a.day - b.day);
+function renderCalendar() {
+  const t = me(), lf = ui.tab.calL || 'both', tf = ui.tab.calT || 'me';
+  const teamId = tf === 'me' ? t.id : tf === 'all' ? null : tf;
+  const m0 = calMonth(), y = Math.floor(m0 / 12), mo = m0 % 12;
+  const first = dayOf(y, mo + 1, 1), n = dayOf(y, mo + 2, 1) - first, lead = weekday(first);
+  const today = G.day + 1, sel = ui.tab.calD ?? null;
+  const lgOk = lg => lf === 'both' || lg === lf || lg === 'both';
+  const games = new Map(), keys = new Map();
+  for (const g of G.games) if (g.day >= first && g.day < first + n && lgOk(g.lg) && (!teamId || g.h === teamId || g.a === teamId)) { if (!games.has(g.day)) games.set(g.day, []); games.get(g.day).push(g); }
+  for (const k of allKeyDates()) if (k.day >= first && k.day < first + n && lgOk(k.lg) && (k.key !== 'scout' || k.stop)) { if (!keys.has(k.day)) keys.set(k.day, []); if (!keys.get(k.day).some(x => x.label === k.label)) keys.get(k.day).push(k); }
+  const vs = (g, tid) => { const home = g.h === tid, opp = G.teams[home ? g.a : g.h]; if (!opp) return ''; const res = g.done ? (() => { const my = home ? g.s[0] : g.s[1], ot = home ? g.s[1] : g.s[0]; return ` <b class="${my > ot ? 'pos' : 'neg'}">${my > ot ? 'W' : 'L'} ${my}-${ot}</b>`; })() : ''; return `<div class="cg">${home ? 'vs' : '@'} ${esc(opp.short || opp.name)}${res}</div>`; };
+  const cell = d => {
+    const gs = games.get(d) || [], ks = keys.get(d) || [];
+    let body = ks.map(k => `<div class="ck">${esc(k.label)}</div>`).join('');
+    if (teamId) body += gs.map(g => vs(g, teamId)).join('');
+    else { const c = { ncaa: 0, wnba: 0 }; gs.forEach(g => c[g.lg]++); body += ['ncaa', 'wnba'].filter(l => c[l]).map(l => `<div class="cg muted">${c[l]} ${l.toUpperCase()}</div>`).join(''); }
+    return `<div class="cd ${d === today ? 'today' : ''} ${d < today ? 'past' : ''} ${d === sel ? 'sel' : ''}" data-act="calday" data-v="${d}"><span class="cn">${d - first + 1}</span>${body}</div>`;
+  };
+  const cells = [...Array(lead).fill('<div class="cd empty"></div>'), ...Array.from({ length: n }, (_, i) => cell(first + i))].join('');
+  const teamsL = Object.values(G.teams).filter(x => lf === 'both' ? x.league === t.league : x.league === lf).sort((a, b) => a.name.localeCompare(b.name));
+  const monthName = dateOf(first).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', year: 'numeric' });
+  // the chosen day
+  let detail = '';
+  if (sel != null) {
+    const dg = G.games.filter(g => g.day === sel && lgOk(g.lg) && (!teamId || g.h === teamId || g.a === teamId)).sort((a, b) => (W.isUserTeam(G, b.h) || W.isUserTeam(G, b.a)) - (W.isUserTeam(G, a.h) || W.isUserTeam(G, a.a)) || (a.kind === 'ncaa' || a.kind === 'po' ? -1 : 0));
+    const dk = allKeyDates().filter(k => k.day === sel && lgOk(k.lg) && (k.key !== 'scout' || k.stop));
+    const gl = dg.slice(0, 40).map(g => `<tr><td>${tn(g.a, 18)}</td><td class="num">${g.done ? g.s[1] : ''}</td><td class="muted">${g.neutral ? 'vs' : '@'}</td><td>${tn(g.h, 18)}</td><td class="num">${g.done ? g.s[0] : ''}</td><td>${kindLabel(g)}</td><td>${g.done ? `<a class="wlink" data-act="box" data-v="${g.id}">Box</a>` : ''}</td></tr>`).join('');
+    const canSim = sel > today && !G.user.fired;
+    detail = `<div class="card"><h2>${fmtDay(sel, true)}</h2>
+      ${dk.map(k => `<div class="row" style="margin:2px 0"><span class="pill">event</span> ${esc(k.label)}</div>`).join('')}
+      ${gl ? `<table class="tbl dense">${gl}</table>${dg.length > 40 ? `<p class="muted">+ ${dg.length - 40} more games</p>` : ''}` : dk.length ? '' : '<p class="muted">No games.</p>'}
+      ${canSim ? `<div class="row" style="margin-top:10px"><button class="big" data-act="simto" data-v="${sel}">Sim to ${fmtDay(sel)}</button></div><p class="hint">Plays every day up to ${fmtDay(sel)} and stops at the start of that day. Your games are simmed with your current tactics; it stops early for job offers, your draft pick or the WNBA re-signing window. Everything that happens is filed in your inbox.</p>` : ''}</div>`;
+  }
+  return `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div class="row"><button class="small secondary" data-act="calm" data-v="-1">◀</button><h2 style="margin:0 8px;min-width:150px;text-align:center">${monthName}</h2><button class="small secondary" data-act="calm" data-v="1">▶</button><button class="small secondary" data-act="caltoday" style="margin-left:6px">Today</button></div>
+      <div class="row"><div class="tabs">${[['both', 'Both'], ['ncaa', 'NCAA'], ['wnba', 'WNBA']].map(([k, l]) => `<button class="${lf === k ? 'on' : ''}" data-act="tab" data-k="calL" data-v="${k}">${l}</button>`).join('')}</div>
+      <select data-ch="tabsel" data-k="calT"><option value="me" ${tf === 'me' ? 'selected' : ''}>My team</option><option value="all" ${tf === 'all' ? 'selected' : ''}>All teams</option>${teamsL.map(x => `<option value="${x.id}" ${tf === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div></div>
+    <div class="cal">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(w => `<div class="cw">${w}</div>`).join('')}${cells}</div>
+    <p class="hint">Click a day to see its games and events${sel == null ? ', or to sim to it' : ''}.</p></div>${detail}`;
+}
+
+// ---------------------------------------------------------------- scouting (WNBA coaches at the NCAA Tournament)
+function renderScout() {
+  const gs = G.scoutDay === G.day + 1 ? S.scoutGames(G) : [];
+  if (!gs.length) return '<div class="card"><h2>Scouting</h2><p class="muted">No tournament games to scout right now.</p></div>';
+  const T = G.bracket, seed = id => T?.seeds?.[id] ? `<small class="muted">(${T.seeds[id]})</small> ` : '';
+  const top = tid => (G.teams[tid]?.roster || []).map(id => G.players[id]).filter(p => p && (p.cls === 'SR' || p.cls === 'GR')).sort((a, b) => ovr(b) - ovr(a)).slice(0, 2).map(p => `${pl(p.id)} ${rt(ovr(p))}`).join(', ');
+  return `<div class="card"><h2>${fmtDay(G.day + 1, true)}: NCAA Tournament</h2><p class="hint">Players on every team playing today are marked <span class="pill">scouted</span> on the draft board. Watch a game live (no coaching), then press Continue to play the rest of the day.</p>
+    <table class="tbl">${gs.map(g => `<tr><td>${seed(g.a)}${tn(g.a, 22)}<div class="muted" style="font-size:12px">${top(g.a) || ''}</div></td><td class="num">${g.done ? g.s[1] : ''}</td><td class="muted">vs</td><td>${seed(g.h)}${tn(g.h, 22)}<div class="muted" style="font-size:12px">${top(g.h) || ''}</div></td><td class="num">${g.done ? g.s[0] : ''}</td>
+      <td>${g.done ? `<a class="wlink" data-act="box" data-v="${g.id}">Box</a>` : `<button class="small" data-act="spect" data-v="${g.id}">Watch live</button>`}</td></tr>`).join('')}</table></div>`;
 }
 
 // ---------------------------------------------------------------- roster
@@ -407,13 +477,11 @@ function attachCourt() {
   const box = document.getElementById('courtbox'); if (!box || !court) return;
   court.attach(box);
 }
-function startLive(g) {
+function startLive(g, spect = false) {
   const game = S.simGame(G, g);
-  const side = g.h === W.userTeam(G) ? 0 : 1;
-  game.s[side].noAutoTO = true;
-  if (G.user.manualSubs) game.setManual(side, true);
-  ui.live = { g, game, side, ev: [], speed: ui.live?.speed || 'normal', paused: false, sel: null, tab: 'pbp' };
-  G.user.staffWindow = false;
+  const side = spect ? 0 : g.h === W.userTeam(G) ? 0 : 1;
+  if (!spect) { game.s[side].noAutoTO = true; if (G.user.manualSubs) game.setManual(side, true); G.user.staffWindow = false; }
+  ui.live = { g, game, side, spect, ev: [], speed: ui.live?.speed || 'normal', paused: false, sel: null, tab: 'pbp' };
   ui.screen = 'live';
   // court: home colours / logo on the floor (neutral sites get a neutral court); confetti if the game decides a title
   court ||= new Court();
@@ -437,7 +505,20 @@ function tickLive() {
     if (court && courtOn()) { if (L.speed === 'turbo') court.snap(evs, courtState(L.game)); else court.play(evs, courtState(L.game), liveDelay(L) * 0.94); }
   }
   render();
-  if (!L.paused && !L.game.done) ui.timer = setTimeout(tickLive, liveDelay(L));
+  if (!L.paused && !L.game.done) ui.timer = setTimeout(tickLive, liveDelay(L) * (court && courtOn() && L.speed !== 'turbo' ? court.mult : 1));
+}
+// Sim the live game to the end of the current period ('q') or to halftime ('h'), then pause.
+function simLiveTo(v) {
+  const L = ui.live, game = L.game; clearTimeout(ui.timer);
+  let last = [];
+  while (!game.done) {
+    const evs = game.step(); L.ev.push(...evs); if (evs.length) last = evs;
+    const end = evs.find(e => e.type === 'period' && e.text.startsWith('End'));
+    if (end && (v === 'q' || end.q >= 2)) break;
+  }
+  L.paused = !game.done;
+  if (court && courtOn() && last.length) court.snap(last, courtState(game));
+  render();
 }
 function renderLive() {
   const L = ui.live, game = L.game, [H, A] = game.s, me_ = game.s[L.side];
@@ -454,11 +535,11 @@ function renderLive() {
   const done = game.done;
   const boxes = [H.box, A.box];
   return `<div class="card"><div class="sb">${sbT(A, 1)}<div><div class="per">${done ? 'FINAL' + (game.q > 4 ? ' (' + periodName(game.q) + ')' : '') : periodName(game.q)}</div><div class="clk">${done ? '' : fmtClock(game.clock)}</div>
-      <div class="ctrl" style="justify-content:center;margin-top:6px">${done ? `<button data-act="lfinish">Continue</button>` : `<button data-act="lpause">${L.paused ? '▶ Play' : '❚❚ Pause'}</button><select data-ch="lspeed">${Object.keys(SPEEDS).map(k => `<option ${L.speed === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="secondary" data-act="lsim">Sim to end</button><label style="font-size:12px"><input type="checkbox" data-ch="lcourt" ${courtOn() ? 'checked' : ''}> Court</label>`}</div></div>${sbT(H, 0)}</div></div>
+      <div class="ctrl" style="justify-content:center;margin-top:6px">${done ? `<button data-act="lfinish">Continue</button>` : `<button data-act="lpause">${L.paused ? '▶ Play' : '❚❚ Pause'}</button><select data-ch="lspeed">${Object.keys(SPEEDS).map(k => `<option ${L.speed === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="secondary" data-act="lsimto" data-v="q">To end of ${game.q > 4 ? 'OT' : 'Q' + game.q}</button>${game.q <= 1 ? '<button class="secondary" data-act="lsimto" data-v="h">To halftime</button>' : ''}<button class="secondary" data-act="lsim">Sim to end</button><label style="font-size:12px"><input type="checkbox" data-ch="lcourt" ${courtOn() ? 'checked' : ''}> Court</label>`}</div></div>${sbT(H, 0)}</div></div>
     ${courtOn() ? '<div class="card courtcard"><div id="courtbox"></div></div>' : ''}
-    <div class="gamewrap"><div class="card"><div class="tabs">${[['pbp', 'Play-by-play'], ['box', 'Box score']].map(([k, l]) => `<button class="${L.tab === k ? 'on' : ''}" data-act="ltab" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="gamewrap" ${L.spect ? 'style="grid-template-columns:1fr"' : ''}><div class="card"><div class="tabs">${[['pbp', 'Play-by-play'], ['box', 'Box score']].map(([k, l]) => `<button class="${L.tab === k ? 'on' : ''}" data-act="ltab" data-v="${k}">${l}</button>`).join('')}</div>
       ${L.tab === 'pbp' ? `<div id="feed">${L.ev.slice(-160).reverse().map(evRow).join('')}</div>` : boxScore([H.id, A.id], boxes, [H.tm, A.tm], [H.qpts, A.qpts], [H.score, A.score])}</div>
-    <div class="card"><h2>Your bench</h2>${done ? '' : `<div class="ctrl"><button data-act="lto" ${me_.to > 0 && !me_.wantTO ? '' : 'disabled'}>${me_.wantTO ? 'Timeout called' : 'Call timeout'}</button><label><input type="checkbox" data-ch="lmanual" ${me_.manual ? 'checked' : ''}> Manual subs</label></div>`}
+    <div class="card" ${L.spect ? 'style="display:none"' : ''}><h2>Your bench</h2>${done ? '' : `<div class="ctrl"><button data-act="lto" ${me_.to > 0 && !me_.wantTO ? '' : 'disabled'}>${me_.wantTO ? 'Timeout called' : 'Call timeout'}</button><label><input type="checkbox" data-ch="lmanual" ${me_.manual ? 'checked' : ''}> Manual subs</label></div>`}
       <div class="kv" style="margin:8px 0"><span>Offense</span><span>${sel('off', OFFENSES)}</span><span>Pace</span><span>${sel('pace', PACES)}</span><span>Defense</span><span>${sel('def', DEFENSES)}</span><span>Press</span><span><select data-ch="ltac" data-k="press"><option value="0" ${!tac.press ? 'selected' : ''}>Off</option><option value="1" ${tac.press ? 'selected' : ''}>On</option></select></span><span>Late fouling</span><span>${sel('late', LATE_FOUL)}</span></div>
       <p class="hint">${L.sel ? 'Now click the player to swap with.' : 'Click a player on the floor, then one on the bench, to sub.'}</p>
       <div class="court">${me_.on.map(p => plRow(p, true)).join('')}<hr style="border:0;border-top:1px solid var(--line);width:100%">${me_.players.filter(p => !me_.on.includes(p)).sort((a, b) => ovr(b) - ovr(a)).map(p => plRow(p, false)).join('')}</div></div></div>`;
@@ -473,6 +554,7 @@ function finishLive() {
   clearTimeout(ui.timer);
   if (!L.game.done) L.game.run();
   const res = L.game.result();
+  if (L.spect) { S.applyResult(G, L.g, res, true); ui.live = null; save(); ui.screen = 'scout'; render(); return; }
   const stop = S.finishUserDay(G, L.g, res);
   ui.live = null; ui.pending = null; save();
   ui.screen = 'box'; ui.arg = L.g.id;
@@ -482,6 +564,7 @@ function finishLive() {
 
 // ---------------------------------------------------------------- continue / day loop
 function doContinue() {
+  ui.msg = '';
   if (ui.pending) { go('pregame'); return; }
   const r = S.advance(G);
   G.user.staffWindow = G.user.staffWindow && r.stop !== 'game' ? G.user.staffWindow : G.user.staffWindow;
@@ -490,17 +573,63 @@ function doContinue() {
   handleStop(r.stop);
   render();
 }
-function handleStop(stop) {
-  if (stop === 'selection') { ui.msg = `<b>Selection Sunday.</b> The 68-team NCAA Tournament field is set.`; ui.screen = 'bracket'; ui.tab.bk = G.bracket.id; }
-  else if (stop === 'ncaa-champion') { ui.msg = `<b>${esc(G.teams[G.bracket.champ].name)}</b> win the national championship.`; ui.screen = 'bracket'; ui.tab.bk = G.bracket.id; }
-  else if (stop === 'wnba-champion') { ui.msg = `<b>${esc(G.teams[G.wpo.champ].name)}</b> win the ${G.season} WNBA championship.`; ui.screen = 'bracket'; ui.tab.bk = 'wpo'; }
-  else if (stop === 'college-offseason') { const c = calendar(G.season); ui.msg = `<b>The college season is over.</b> Seniors moving on and 5th years leave, the transfer portal opens ${fmtDay(c.portal)} and closes ${fmtDay(c.portalClose)}, the WNBA draft is ${fmtDay(c.draft)}, and the signing period runs until ${fmtDay(c.recruitEnd)}. Check NIL deals for players who might transfer.`; ui.screen = 'recruit'; ui.tab.rc = 'nil'; }
-  else if (stop === 'jobs') { ui.msg = G.user.fired ? '<b>You need a new job.</b> Pick one of the offers.' : '<b>You have job offers.</b> Take one or keep your current job (offers expire in a few days).'; ui.screen = 'jobs'; }
-  else if (stop === 'draft') { ui.msg = '<b>You are on the clock.</b>'; ui.screen = 'draft'; }
-  else if (stop === 'draft-done') { ui.msg = `<b>The ${G.season} WNBA draft is complete.</b>`; ui.screen = 'draft'; }
-  else if (stop === 'fa') { ui.msg = '<b>Re-signing window.</b> Re-sign the expiring players you want to keep; the rest hit the open market on Feb 1.'; ui.screen = 'fa'; }
-  else if (stop === 'new-season') { ui.msg = `<b>Welcome to the ${seasonLabel(G.season)} season.</b> Players developed over the summer${me().league === 'ncaa' ? ', the freshmen have arrived and a new recruiting class is on the board' : ''}.`; ui.screen = 'roster'; }
-  else if (stop === 'max') ui.msg = 'Nothing happened for a long stretch of days.';
+// A stop of the day loop: message (also filed in the inbox as an event) and the screen to show. quiet = inbox only (sim to date).
+const KEY_MSG = {
+  portal: () => `<b>The transfer portal is open.</b> Players from every program can be recruited until ${fmtDay(calendar(G.season).portalClose)}; unhappy players of yours may enter too.`,
+  portalClose: () => `<b>The transfer portal has closed.</b>${calendar(G.season).recruitEnd === calendar(G.season).portalClose ? ' The signing period is over too: your incoming class is set.' : ''} Check your roster for next season.`,
+  signing: () => '<b>The signing period is over.</b> Your incoming class is set; open spots are filled by walk-ons.',
+  faOpen: () => '<b>WNBA free agency is open.</b> Unsigned players are on the market: sign them at their ask while you have cap room and roster spots.',
+  cuts: () => `<b>Cut-down day is tomorrow.</b> You have ${me().roster.length} players; release down to 12 on the Roster screen or the staff waives the rest.`,
+  deadline: () => '<b>The trade deadline is tomorrow.</b> Last chance to make a trade this season.',
+  invite: () => '<b>You have an invitation:</b> scout the NCAA Tournament. Answer it in your inbox.',
+};
+function handleStop(stop, quiet = false) {
+  if (!stop || stop === 'game' || stop === 'max' && quiet) return;
+  let msg = '', screen = null, tab = null;
+  if (stop === 'selection') { msg = `<b>Selection Sunday.</b> The 68-team NCAA Tournament field is set.`; screen = 'bracket'; tab = ['bk', G.bracket.id]; }
+  else if (stop === 'ncaa-champion') { msg = `<b>${esc(G.teams[G.bracket.champ].name)}</b> win the national championship.`; screen = 'bracket'; tab = ['bk', G.bracket.id]; }
+  else if (stop === 'wnba-champion') { msg = `<b>${esc(G.teams[G.wpo.champ].name)}</b> win the ${G.season} WNBA championship.`; screen = 'bracket'; tab = ['bk', 'wpo']; }
+  else if (stop === 'college-offseason') { const c = calendar(G.season); msg = `<b>The college season is over.</b> Seniors moving on and 5th years leave, the transfer portal opens ${fmtDay(c.portal)} and closes ${fmtDay(c.portalClose)}, the WNBA draft is ${fmtDay(c.draft)}, and the signing period runs until ${fmtDay(c.recruitEnd)}. Check NIL deals for players who might transfer.`; screen = 'recruit'; tab = ['rc', 'nil']; }
+  else if (stop === 'jobs') { msg = G.user.fired ? '<b>You need a new job.</b> Pick one of the offers.' : '<b>You have job offers.</b> Take one or keep your current job (offers expire in a few days).'; screen = 'jobs'; }
+  else if (stop === 'draft') { msg = '<b>You are on the clock.</b>'; screen = 'draft'; }
+  else if (stop === 'draft-done') { msg = `<b>The ${G.season} WNBA draft is complete.</b>`; screen = 'draft'; }
+  else if (stop === 'fa') { msg = '<b>Re-signing window.</b> Re-sign the expiring players you want to keep; the rest hit the open market on Feb 1.'; screen = 'fa'; }
+  else if (stop === 'new-season') { msg = `<b>Welcome to the ${seasonLabel(G.season)} season.</b> Players developed over the summer${me().league === 'ncaa' ? ', the freshmen have arrived and a new recruiting class is on the board' : ''}.`; screen = 'roster'; }
+  else if (stop === 'scout') { const k = S.keyDates(G).find(k => k.key === 'scout' && k.day === G.day + 1); msg = `<b>Scouting: ${esc(k ? k.label : 'NCAA Tournament')}.</b> Watch a game live, or press Continue to play the day.`; screen = 'scout'; }
+  else if (stop.startsWith('key:')) { const key = stop.slice(4), k = S.keyDateByKey(G, key); msg = KEY_MSG[key] ? KEY_MSG[key]() : `<b>${esc(k?.label || key)}</b>`; if (k?.go) { screen = k.go[0]; if (k.go[1]) tab = [k.go[1], k.go[2]]; } }
+  else if (stop === 'max') msg = 'Nothing happened for a long stretch of days.';
+  if (!msg) return;
+  if (stop !== 'max' && stop !== 'scout' && stop !== 'draft') S.mail(G, 'event', msg, { html: 1 });
+  if (quiet) return;
+  ui.msg = msg;
+  if (screen) { ui.screen = screen; ui.arg = null; }
+  if (tab) ui.tab[tab[0]] = tab[1];
+}
+// Sim to a date: play every day before `target` (the user's games simmed with the current plan), stop at the start of
+// that day. Stops early for things the user has to decide (job offers, the draft pick, the WNBA re-signing window).
+const BLOCKING = st => st === 'jobs' || st === 'draft' || st === 'fa';
+function simTo(target) {
+  ui.msg = '';
+  const seen = []; let block = null;
+  for (let guard = 0; guard < 3000 && G.day + 1 < target; guard++) {
+    if (ui.pending) {
+      const g = ui.pending; ui.pending = null;
+      G.user.staffWindow = false;
+      const st = S.finishUserDay(G, g, S.simGame(G, g).run());
+      if (st) { seen.push(st); if (BLOCKING(st)) { block = st; break; } }
+      continue;
+    }
+    const r = S.advance(G, { maxDays: target - 1 - G.day, noScout: true });
+    if (r.stop === 'max') break;
+    if (r.stop === 'game') { ui.pending = r.game; continue; }
+    seen.push(r.stop);
+    if (BLOCKING(r.stop)) { block = r.stop; break; }
+  }
+  for (const st of seen) if (st !== block) handleStop(st, true);
+  save();
+  if (block) handleStop(block);
+  else { ui.msg = `<b>Simmed to ${fmtDay(G.day + 1, true)}.</b>${seen.length ? ' What happened on the way is in your inbox.' : ''}`; ui.screen = 'calendar'; }
+  render(); window.scrollTo(0, 0);
 }
 function simUserGame() {
   const g = ui.pending; if (!g) return;
@@ -575,7 +704,7 @@ function renderRecruit() {
 // ---------------------------------------------------------------- WNBA draft
 function renderDraft() {
   const D = G.draft, L = G.lottery, u = W.userTeam(G), cal = calendar(G.season);
-  const prow = (p, btn) => `<tr><td class="l">${pl(p.id)}</td><td>${p.pos}</td><td>${fmtHt(p.ht)}</td><td>${p.age ?? ''}</td><td>${p.from && G.teams[p.from] ? tn(p.from, 14) : esc(p.college || (p.team && G.teams[p.team] ? G.teams[p.team].short : ''))}</td><td>${rt(ovr(p))}</td><td>${rt(p.pot)}</td><td class="muted">${p.hist?.length ? stLine(p.hist[p.hist.length - 1].st) : stLine(p.st)}</td><td>${btn || ''}</td></tr>`;
+  const prow = (p, btn) => `<tr><td class="l">${pl(p.id)}${p.scouted === G.season ? ' <span class="pill" title="You scouted her at the NCAA Tournament">scouted</span>' : ''}</td><td>${p.pos}</td><td>${fmtHt(p.ht)}</td><td>${p.age ?? ''}</td><td>${p.from && G.teams[p.from] ? tn(p.from, 14) : esc(p.college || (p.team && G.teams[p.team] ? G.teams[p.team].short : ''))}</td><td>${rt(ovr(p))}</td><td>${rt(p.pot)}</td><td class="muted">${p.hist?.length ? stLine(p.hist[p.hist.length - 1].st) : stLine(p.st)}</td><td>${btn || ''}</td></tr>`;
   const phdr = '<tr><th class="l">Name</th><th>Pos</th><th>Ht</th><th>Age</th><th>College</th><th>OVR</th><th>POT</th><th>Last season</th><th></th></tr>';
   if (D) {
     const k = D.picks.length, onClock = OF.userOnClock(G);
@@ -697,8 +826,17 @@ const ACTS = {
   tab: (v, el) => { ui.tab[el.dataset.k] = v; render(); },
   rsort: v => { ui.tab.rsort = v; render(); },
   continue: () => doContinue(),
+  calm: v => { ui.tab.calM = calMonth() + (+v); render(); },
+  caltoday: () => { ui.tab.calM = null; ui.tab.calD = null; render(); },
+  calday: v => { ui.tab.calD = +v; render(); },
+  simto: v => simTo(+v),
+  invyes: v => { S.answerInvite(G, +v, true); save(); render(); },
+  invno: v => { S.answerInvite(G, +v, false); save(); render(); },
+  mailgo: v => { const [sc, k, t] = v.split(':'); if (k) ui.tab[k] = t; go(sc); },
+  spect: v => { const g = S.gameById(G, v); if (g && !g.done) startLive(g, true); },
   watch: () => startLive(ui.pending), simgame: () => simUserGame(),
   lpause: () => { ui.live.paused = !ui.live.paused; tickLive(); },
+  lsimto: v => simLiveTo(v),
   lsim: () => { ui.live.game.run(); ui.live.ev = ui.live.game.ev.slice(); render(); },
   lfinish: () => finishLive(),
   ltab: v => { ui.live.tab = v; render(); },
@@ -780,4 +918,4 @@ document.addEventListener('input', e => {
   if (el.dataset.ch === 'tabsel' && el.dataset.k === 'tq') { ui.tab.tq = el.value; const pos = el.selectionStart; render(); const n = document.querySelector('[data-k="tq"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }
 });
 render();
-window.__dbg = { get G() { return G; }, ui, ACTS, render, handleStop, get court() { return court; } };
+window.__dbg = { get G() { return G; }, ui, ACTS, render, handleStop, simTo, get court() { return court; } };

@@ -4,7 +4,7 @@ import { makeRng } from '../engine/rng.js';
 import { ovr as engOvr, autoMinutes, posGroup } from '../engine/game.js';
 import { defaultTactics } from '../engine/rules.js';
 import { genPlayer, randomName, setNextId } from '../data/gen.js';
-import { buildNcaaSchedule, buildWnbaSchedule, calendar } from './sched.js';
+import { buildNcaaSchedule, buildWnbaSchedule, calendar, news } from './sched.js';
 import * as RC from './recruit.js';
 import * as OF from './offseason.js';
 
@@ -105,8 +105,8 @@ export function newGame(opts) {
   const cal = calendar(G.season);
   G.day = cal.start - 1; G.phase = 'regular';
   G.games = buildNcaaSchedule(G, rng).concat(buildWnbaSchedule(G, rng)).sort((a, b) => a.day - b.day);
-  G.news.push({ day: G.day, text: `${uc.name} is the new head coach of ${tm.name}.`, me: 1 });
-  G.news.push({ day: G.day, text: tm.league === 'ncaa' ? 'Recruiting runs every week until May 20: build a board on the Recruiting screen (hours, offers, NIL), or let your staff handle it (Game menu). Unsigned spots are filled by walk-ons.' : 'Your front office: the draft is in April, free agency opens Feb 1, trades until the August deadline (Free agency / Trades / Draft screens).', me: 1 });
+  news(G, `${uc.name} is the new head coach of ${tm.name}.`, 1);
+  news(G, tm.league === 'ncaa' ? 'Recruiting runs every week until May 20: build a board on the Recruiting screen (hours, offers, NIL), or let your staff handle it (Game menu). Unsigned spots are filled by walk-ons.' : 'Your front office: the draft is in April, free agency opens Feb 1, trades until the August deadline (Free agency / Trades / Draft screens).', 1);
   return G;
 }
 

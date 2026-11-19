@@ -7,6 +7,16 @@ export const dateOf = day => new Date(day * MS);
 export const fmtDay = (day, long = false) => dateOf(day).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) });
 export const weekday = day => dateOf(day).getUTCDay();   // 0 = Sunday
 export const seasonLabel = Y => `${Y - 1}-${String(Y).slice(2)}`;
+// News feed + the user's inbox (docs/ui.md). news(me=1) items also land in the inbox; kind: news | result | event | invite.
+export function mail(G, kind, text, extra = {}) {
+  G.inbox ||= []; G.inboxN = (G.inboxN || 0) + 1;
+  G.inbox.push({ id: G.inboxN, day: G.day + 1, kind, text, read: 0, ...extra });
+  if (G.inbox.length > 200) G.inbox.splice(0, G.inbox.length - 200);
+}
+export function news(G, text, me = 0, kind = 'news', extra) {
+  G.news.push({ day: G.day + 1, text, me }); if (G.news.length > 300) G.news.splice(0, G.news.length - 300);
+  if (me) mail(G, kind, text, extra);
+}
 const nthWeekday = (y, m, wd, n) => { let d = dayOf(y, m, 1); while (weekday(d) !== wd) d++; return d + 7 * (n - 1); };
 
 export function calendar(Y) {

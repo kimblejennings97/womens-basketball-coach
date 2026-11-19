@@ -1,5 +1,6 @@
 // Awards, record books, Hall of Fame (docs/legacy.md). Careers count from the start of the save (the real rosters bring
 // last season's line as background only). No imports from world.js / season.js (avoids load-order cycles).
+import { news } from './sched.js';
 
 export const AWARDS = {
   npoy: ['ncaa', 'National Player of the Year'], naa1: ['ncaa', 'All-American, first team'], naa2: ['ncaa', 'All-American, second team'],
@@ -12,7 +13,6 @@ export const REC_KEYS = [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assist
 const N = 10;
 const val = (b, k) => (k === 'reb' ? b.orb + b.drb : b[k]);
 const recs = (G, lg) => { G.records ||= {}; return (G.records[lg] ||= { game: {}, season: {}, avg: {}, tgame: {}, tseason: {} }); };
-const news = (G, text, me = 0) => { G.news.push({ day: G.day + 1, text, me }); if (G.news.length > 300) G.news.splice(0, G.news.length - 300); };
 // keep a top-N list of [value, ...info] sorted by value (desc)
 function push(list, entry) {
   if (list.length >= N && entry[0] <= list[list.length - 1][0]) return false;

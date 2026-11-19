@@ -6,7 +6,7 @@
 import { makeRng } from '../engine/rng.js';
 import { genPlayer, randomName as randomCoachName } from '../data/gen.js';
 import * as W from './world.js';
-import { calendar, buildNcaaSchedule, buildWnbaSchedule } from './sched.js';
+import { calendar, buildNcaaSchedule, buildWnbaSchedule, news } from './sched.js';
 import * as RC from './recruit.js';
 import * as LG from './legacy.js';
 
@@ -15,7 +15,6 @@ const r1 = x => Math.round(x * 10) / 10;
 const hash = s => [...String(s)].reduce((a, c) => (Math.imul(a, 31) + c.charCodeAt(0)) >>> 0, 2166136261);
 const rngFor = (G, key) => makeRng((G.seed ^ hash(key + G.season)) >>> 0);
 const ovr = p => W.ovr(p);   // (not W.ovr directly: world.js imports this module, so W is not ready at load time)
-const news = (G, text, me = 0) => { G.news.push({ day: G.day + 1, text, me }); if (G.news.length > 300) G.news.splice(0, G.news.length - 300); };
 const ut = G => W.userTeam(G);
 const teamsOf = (G, lg) => Object.values(G.teams).filter(t => t.league === lg);
 const pct = (w, l) => (w + l ? w / (w + l) : 0.5);

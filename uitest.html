@@ -1,7 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="css/style.css"></head><body>
 <div id="app"></div><pre id="o" style="display:none"></pre>
 <script type="module">
-// UI click-through for screenshots: ?shot=<screen or act:arg>&mode=pick|unknown&team=<id>&cont=<continues>&poss=<live possessions>. Errors land in #o.
+// UI click-through for screenshots: ?shot=<screen or act:arg | live | liveq&v=q|h | spect (after until=scout&scout=1)>&mode=pick|unknown&team=<id>&cont=<continues>&poss=<live possessions>. Errors land in #o.
 Object.defineProperty(window, 'indexedDB', { value: undefined });
 const errs = [];
 window.addEventListener('error', e => errs.push(e.message));
@@ -20,7 +20,7 @@ try {
     // &until=<stop>[,<stop>...]: sim the calendar (user games simmed) until that stop, e.g. until=college-offseason or until=draft
     if (q.get('until')) {
       const S = await import('./js/game/season.js'), want = q.get('until').split(','); let k = 0;
-      for (let guard = 0; guard < 300; guard++) { const r = S.advance(D.G, { stopAtUserGame: false }); if (r.stop === want[k]) { k++; if (k === want.length) { D.handleStop(r.stop); break; } } if (r.stop === 'jobs' && !D.G.user.fired && want[k] !== 'jobs') D.G.user.offers = []; if (r.stop === 'draft' && want[k] !== 'draft') D.ACTS.dauto(); }
+      for (let guard = 0; guard < 300; guard++) { const r = S.advance(D.G, { stopAtUserGame: false }); if (r.stop === want[k]) { k++; if (k === want.length) { D.handleStop(r.stop); break; } } if (r.stop === 'jobs' && !D.G.user.fired && want[k] !== 'jobs') D.G.user.offers = []; if (r.stop === 'draft' && want[k] !== 'draft') D.ACTS.dauto(); if (r.stop === 'key:invite' && q.get('scout')) S.answerInvite(D.G, D.G.inbox.find(m => m.inv && !m.answered).id, true); }
       D.ui.pending = null; D.render();
     }
     for (const kv of (q.get('tab') || '').split(',').filter(Boolean)) { const [k, v] = kv.split(':'); D.ui.tab[k] = v; }
@@ -28,6 +28,8 @@ try {
     if (shot === 'livecourt') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = q.get('speed') || 'fast'; await new Promise(r => setTimeout(r, +(q.get('ms') || 9000))); }
     else if (shot === 'live') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = 'turbo'; for (let i = 0; i < +(q.get('poss') || 60); i++) D.ui.live.game.step(); D.ui.live.ev = D.ui.live.game.ev.slice(); D.ui.live.paused = true; D.render(); }
     else if (shot === 'livebox') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.paused = true; for (let i = 0; i < 100; i++) D.ui.live.game.step(); D.ui.live.tab = 'box'; D.render(); }
+    else if (shot === 'liveq') { D.ACTS.continue(); D.ACTS.watch(); D.ui.live.speed = 'turbo'; D.ACTS.lsimto(q.get('v') || 'q'); }
+    else if (shot === 'spect') { const g = (await import('./js/game/season.js')).scoutGames(D.G)[0]; D.ACTS.spect(g.id); D.ui.live.speed = 'turbo'; D.ACTS.lsimto('h'); }
     else if (shot !== 'home') { const [s, a] = shot.split(':'); if (D.ACTS[s]) D.ACTS[s](a, { dataset: {} }); else D.ACTS.go(s); }
   }
 } catch (e) { errs.push(e.stack); }

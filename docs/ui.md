@@ -5,7 +5,21 @@ live in `js/ui/app.js`; clicks go through `data-act` (ACTS map), form changes th
 
 - Start: coach name; "Unknown coach" (four job offers from small D1 programs, 3-year contract) or "Pick any team"
   (NCAA / WNBA list with search). Saved games list (load / delete).
+- Top bar: the big Continue button names where it stops next: the next key date for your league (`S.nextStop`,
+  docs/season.md) if it comes before your next game, else the next game; "You are on the clock" / "Choose a new job" when
+  something must be decided. Messages (`ui.msg`) clear on Continue and when you change screens.
 - Home: team card, next game, news, conference standings, AP top 10.
+- Inbox: `G.inbox` (max 200; `mail()` / `news(me=1)` in sched.js). Kinds: results (box score link), events (every
+  calendar stop's message), news (injuries, awards, staff...), invites (Accept / Decline). Tabs per kind with unread
+  counts; opening the inbox marks items read (an open invite stays unread). Nav shows "Inbox (n)".
+- Calendar: month grid (prev / next / today), league filter (both / NCAA / WNBA), team filter (my team, all teams = game
+  counts per league, or any team). Key dates in gold, your results W/L. Click a day: its events and games (box links),
+  and "Sim to <date>": plays every day before it (your games simmed with your plan, scouting days skipped), stops at the
+  start of that day, or early for job offers, your draft pick or the WNBA re-signing window; everything on the way is
+  filed in the inbox.
+- Scouting (WNBA coaches who accepted the NCAA Tournament invite): on scouting days the day's tournament games are
+  listed (seeds, top two seniors per team) with "Watch live" (spectator: same viewer, no bench controls); Continue plays
+  the day. Players on teams playing that day get `p.scouted` = season: a "scouted" tag on the draft board.
 - Roster: every rating as a 1-20 chip (red < 9, yellow 9-12, green 13-16, gold 17+), sortable columns, season line.
 - Tactics: offense, pace, defense, press, late-game fouling (with descriptions); rotation = five starters + target
   minutes (total 200), or automatic.
@@ -29,7 +43,7 @@ live in `js/ui/app.js`; clicks go through `data-act` (ACTS map), form changes th
 - Box score: quarter line, both teams' player lines, team totals.
 - Pregame: scouting of both top fives, "Coach the game live" or "Sim the game".
 - Live game: animated court above the feed (docs/animation.md; "Court" toggle), scoreboard (team fouls, bonus, timeouts), play-by-play feed or live box score, speed (slow / normal / fast
-  / turbo), pause, sim to end; auto-pause at the end of each period. Your bench: call timeout (taken at the next dead
+  / turbo), pause, sim to end of the quarter (pauses), sim to halftime (Q1 only), sim to end; auto-pause at the end of each period. Your bench: call timeout (taken at the next dead
   ball), manual-subs toggle (otherwise the auto rotation runs your plan), live tactic changes, click a player on the
   floor then one on the bench to sub (energy bar, minutes, points, fouls, OVR).
 

@@ -2,7 +2,7 @@
 // the 68-team NCAA tournament (top-16 seeds host rounds 1-2), WNBA regular season.
 import { Game } from '../engine/game.js';
 import { makeRng } from '../engine/rng.js';
-import { calendar, fmtDay } from './sched.js';
+import { calendar, fmtDay, seasonLabel, news, mail } from './sched.js';
 import { gameTeam, teamStrength, userTeam, emptyRec } from './world.js';
 import * as OF from './offseason.js';
 import * as RC from './recruit.js';
@@ -15,7 +15,7 @@ export const ROUND_NAMES = ['First round', 'Second round', 'Sweet 16', 'Elite Ei
 export const gameById = (G, id) => G.games.find(g => g.id === id);
 export const userGames = G => { const t = userTeam(G); return G.games.filter(g => g.h === t || g.a === t); };
 export const nextUserGame = G => { const t = userTeam(G); return G.games.find(g => !g.done && (g.h === t || g.a === t)); };
-export const news = (G, text, me = 0) => { G.news.push({ day: G.day + 1, text, me }); if (G.news.length > 300) G.news.splice(0, G.news.length - 300); };
+export { news, mail };
 
 // ---------------------------------------------------------------- results
 export function simGame(G, g) {
@@ -61,29 +61,105 @@ export function applyResult(G, g, res, keepBox = false) {
   if (g.ser != null) seriesResult(G, g, hw ? g.h : g.a);
   if (g.h === ut || g.a === ut) {
     const me = g.h === ut ? 0 : 1, opp = G.teams[me ? g.h : g.a];
-    news(G, `${res.score[me] > res.score[1 - me] ? 'Won' : 'Lost'} ${res.score[me]}-${res.score[1 - me]}${res.ot ? ' (OT)' : ''} ${me ? 'at' : 'vs'} ${opp.short || opp.name}`, 1);
+    news(G, `${res.score[me] > res.score[1 - me] ? 'Won' : 'Lost'} ${res.score[me]}-${res.score[1 - me]}${res.ot ? ' (OT)' : ''} ${me ? 'at' : 'vs'} ${opp.short || opp.name}`, 1, 'result', { g: g.id });
   }
 }
 const BOXK = ['sec', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'pm', 'gs'];
 export const compactBox = res => ({ box: res.box.map(b => Object.fromEntries(Object.entries(b).filter(([, x]) => x.sec > 0).map(([pid, x]) => [pid, BOXK.map(k => Math.round(x[k]))]))), q: res.qpts, tm: res.tm.map(t => ({ ...t })) });
 export const expandLine = arr => Object.fromEntries(BOXK.map((k, i) => [k, arr[i]]));
 
+// ---------------------------------------------------------------- key dates
+// The calendar's milestones for season Y. `stop` = whose coaches the Continue button stops for ('ncaa' | 'wnba' | 'both'),
+// after playing day `day - pre`; `own` = the stop is raised elsewhere (dayEvents / offseasonEvents / scouting), listed
+// here for the button label and the calendar. `go` = screen (+ tab key, value) to open at the stop.
+export function keyDates(G, Y = G.season) {
+  const c = calendar(Y), sc = G.user.scout === Y ? 'wnba' : null;
+  const K = [
+    { day: c.start, lg: 'ncaa', label: `${seasonLabel(Y)} college season tips off` },
+    { day: c.ct, lg: 'ncaa', label: 'Conference tournaments begin' },
+    { day: c.selection - 10, lg: 'wnba', label: 'Invitation: scout the NCAA Tournament', key: 'invite', stop: 'wnba', go: ['inbox'] },
+    { day: c.selection, lg: 'ncaa', label: 'Selection Sunday', stop: 'both', own: 1 },
+    { day: c.ncaa.ff, lg: 'ncaa', label: 'NCAA Tournament: First Four' },
+    { day: c.ncaa.r1, lg: 'ncaa', label: 'NCAA Tournament: first round', key: 'scout', stop: sc, own: 1, pre: 1 },
+    { day: c.ncaa.s16, lg: 'ncaa', label: 'NCAA Tournament: Sweet 16', key: 'scout', stop: sc, own: 1, pre: 1 },
+    { day: c.ncaa.e8, lg: 'ncaa', label: 'NCAA Tournament: Elite Eight', key: 'scout', stop: sc, own: 1, pre: 1 },
+    { day: c.ncaa.f4, lg: 'ncaa', label: 'Final Four', key: 'scout', stop: sc, own: 1, pre: 1 },
+    { day: c.ncaa.ch, lg: 'ncaa', label: 'National championship game', key: 'scout', stop: sc, own: 1, pre: 1 },
+    { day: c.collegeEnd, lg: 'ncaa', label: 'College offseason: departures, coaching carousel', stop: 'ncaa', own: 1 },
+    { day: c.portal, lg: 'ncaa', label: 'Transfer portal opens', key: 'portal', stop: 'ncaa', go: ['recruit', 'rc', 'portal'] },
+    { day: c.draft, lg: 'both', label: `${Y} WNBA draft`, stop: 'both', own: 1 },
+    { day: c.portalClose, lg: 'ncaa', label: 'Transfer portal closes', key: 'portalClose', stop: 'ncaa', go: ['roster'] },
+    { day: c.recruitEnd, lg: 'ncaa', label: 'Signing period ends', key: 'signing', stop: 'ncaa', go: ['roster'] },
+    { day: c.faStart, lg: 'wnba', label: 'WNBA re-signing window opens', stop: 'wnba', own: 1 },
+    { day: c.faOpen, lg: 'wnba', label: 'WNBA free agency opens', key: 'faOpen', stop: 'wnba', go: ['fa'] },
+    { day: c.wnbaCuts, pre: 1, lg: 'wnba', label: 'WNBA roster cut-down (12 players)', key: 'cuts', stop: 'wnba', go: ['roster'] },
+    { day: c.wnbaStart, lg: 'wnba', label: `${Y} WNBA season opens` },
+    { day: c.deadline, pre: 1, lg: 'wnba', label: 'WNBA trade deadline', key: 'deadline', stop: 'wnba', go: ['trade'] },
+    { day: c.playoffs, lg: 'wnba', label: 'WNBA playoffs begin' },
+    { day: c.rollover, lg: 'both', label: 'New season: development, freshmen arrive', stop: 'both', own: 1 },
+  ];
+  for (const k of K) k.at = k.day - (k.pre || 0);
+  return K;
+}
+const stopsFor = (k, lg) => k.stop === 'both' || k.stop === lg;
+// The key date the Continue button stops at after playing day d (null if none).
+function keyStop(G, d) {
+  const lg = G.teams[userTeam(G)].league;
+  const k = keyDates(G).find(k => k.key && !k.own && k.at === d && stopsFor(k, lg));
+  if (!k) return null;
+  if (k.key === 'invite') { if (G.user.auto || !scoutInvite(G)) return null; }
+  if (k.key === 'cuts' && G.teams[userTeam(G)].roster.length <= 12) return null;
+  return 'key:' + k.key;
+}
+// Where the Continue button stops next, if that comes before the user's next game: a keyDates entry or null.
+export function nextStop(G) {
+  const lg = G.teams[userTeam(G)].league, ng = nextUserGame(G);
+  const ks = [...keyDates(G), ...keyDates(G, G.season + 1)].filter(k => k.at > G.day && stopsFor(k, lg) && (k.key !== 'invite' || (!G.user.auto && G.user.scoutAsked !== G.season))).sort((a, b) => a.at - b.at);
+  const k = ks[0];
+  return k && (!ng || k.at < ng.day) ? k : null;
+}
+export const keyDateByKey = (G, key) => keyDates(G).find(k => k.key === key);
+
+// WNBA coaches are invited to scout the NCAA Tournament (inbox invite). Accepting makes the tournament's big days stops
+// where the user can watch games live; players on the teams playing those days are marked scouted (draft screen).
+function scoutInvite(G) {
+  if (G.user.scoutAsked === G.season) return false;
+  G.user.scoutAsked = G.season;
+  mail(G, 'invite', `You are invited to scout the ${G.season} NCAA Tournament. Accept and the calendar stops before the first round, Sweet 16, Elite Eight, Final Four and title game: watch games live and scout the draft class.`, { inv: 'scout', season: G.season });
+  return true;
+}
+export function answerInvite(G, id, yes) {
+  const m = (G.inbox || []).find(x => x.id === id); if (!m || m.answered) return;
+  m.answered = yes ? 'yes' : 'no'; m.read = 1;
+  if (m.inv === 'scout' && yes) G.user.scout = m.season;
+}
+// At a scouting stop the day's NCAA Tournament games exist but are not played yet.
+export function scoutGames(G) { const d = G.day + 1; return G.games.filter(g => g.day === d && g.kind === 'ncaa'); }
+function markScouted(G, games) {
+  for (const g of games) for (const tid of [g.h, g.a]) for (const pid of G.teams[tid]?.roster || []) { const p = G.players[pid]; if (p) p.scouted = G.season; }
+}
+
 // ---------------------------------------------------------------- the day loop
 // Advance until something needs the user: their next game (returned, not played), Selection Sunday, end of a season,
-// or maxDays. Returns { stop, game?, day }.
-export function advance(G, { maxDays = 400, stopAtUserGame = true } = {}) {
+// a key date for their league (keyDates), a scouting day, or maxDays. Returns { stop, game?, day }.
+// noScout: play through scouting days (sim to date).
+export function advance(G, { maxDays = 400, stopAtUserGame = true, noScout = false } = {}) {
   const pend = pendingStop(G); if (pend) return { stop: pend, day: G.day };
   for (let i = 0; i < maxDays; i++) {
     const d = G.day + 1;
     const ev = dayEvents(G, d);
     if (stopAtUserGame) {
       const ug = G.games.find(g => g.day === d && !g.done && (g.h === userTeam(G) || g.a === userTeam(G)));
-      if (ug) return { stop: 'game', game: ug, day: d };
+      if (ug) { if (ev) G.evLater = ev; return { stop: 'game', game: ug, day: d }; }   // the day's event is reported after the game
     }
+    const scouting = G.user.scout === G.season && keyDates(G).some(k => k.key === 'scout' && k.day === d) && scoutGames(G).length;
+    if (scouting && !noScout && G.scoutDay !== d) { G.scoutDay = d; return { stop: 'scout', day: d }; }
+    if (scouting) markScouted(G, scoutGames(G));
     playDay(G, d);
     G.day = d;
-    const after = afterDay(G, d);
-    if (ev || after) return { stop: ev || after, day: d };
+    const late = G.evLater; G.evLater = null;
+    const stop = ev || afterDay(G, d) || late || keyStop(G, d);
+    if (stop) return { stop, day: d };
   }
   return { stop: 'max', day: G.day };
 }
@@ -92,7 +168,8 @@ export function finishUserDay(G, g, res) {
   applyResult(G, g, res, true);
   playDay(G, g.day);
   G.day = g.day;
-  return afterDay(G, g.day);
+  const late = G.evLater; G.evLater = null;
+  return afterDay(G, g.day) || late || keyStop(G, g.day);
 }
 // Injuries: ~1 per team every 12-15 games. 60% short (days), 30% weeks, 10% season-ending.
 const INJ = [['Ankle sprain', 3, 10, 0.4], ['Knee soreness', 2, 7, 0.2], ['Concussion', 7, 14, 0.1], ['Hamstring strain', 10, 28, 0.15], ['Broken hand', 21, 42, 0.07], ['Torn ACL', 240, 300, 0.05], ['Foot fracture', 45, 90, 0.03]];
@@ -159,7 +236,7 @@ function offseasonEvents(G, d, cal) {
   if (d === cal.faStart) { OF.faStart(G); if (lg === 'wnba' && !G.user.auto) stop = stop || 'fa'; }
   if (d === cal.faOpen) OF.faOpen(G);
   if (d > cal.faOpen && d < cal.wnbaCuts && weekdayOf(d) === 1) { OF.faWeek(G); OF.aiSignFA(G, rng, 12); }
-  if (d === cal.draft && !G.draft) { OF.startDraft(G); if (OF.runDraft(G) === 'user') stop = 'draft'; else if (lg === 'wnba') stop = stop || 'draft-done'; }
+  if (d === cal.draft && !G.draft) { OF.startDraft(G); if (OF.runDraft(G) === 'user') stop = 'draft'; else stop = stop || 'draft-done'; }
   if (d === cal.wnbaCuts) OF.cutDown(G);
   if (G.wpo?.champ && G.wOff !== G.season) { if (OF.wnbaOffseason(G, d) || G.user.fired) stop = 'jobs'; }
   if (d >= cal.rollover && G.wOff === G.season && G.rolled !== G.season + 1) { OF.rollover(G); stop = stop || 'new-season'; }

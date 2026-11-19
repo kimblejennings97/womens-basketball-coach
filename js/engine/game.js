@@ -64,7 +64,7 @@ export class Game {
   order(list) { return list.slice().sort((a, b) => (POS[a.pos] || 3) - (POS[b.pos] || 3) || a.ht - b.ht); }
 
   log(type, side, text, extra = {}) {
-    this.ev.push({ type, side, text, q: this.q, t: this.clock, sc: this.s ? [this.s[0].score, this.s[1].score] : [0, 0], ...extra });
+    this.ev.push({ type, side, text, q: this.q, t: this.clock, sc: this.s ? [this.s[0].score, this.s[1].score] : [0, 0], ...(this.fb && (type === 'shot' || type === 'to' || type === 'foul') ? { fb: 1 } : null), ...extra });
   }
 
   // ---- public controls (live viewer) ----
@@ -193,7 +193,7 @@ export class Game {
     const n = L.quarters, late = this.q >= n;
     const diff = O.score - D.score;                // offence's lead
     const sc = this.shotClockLeft ?? L.shotClock; this.shotClockLeft = null;
-    const trans = this.trans; this.trans = 0; this.dead = false;
+    const trans = this.trans; this.trans = 0; this.dead = false; this.fb = trans;   // fb: transition possession (court animation only)
     O.tm.poss++;
 
     // Trailing defence fouls on purpose late in the game.

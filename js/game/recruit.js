@@ -10,7 +10,7 @@ import { makeRng } from '../engine/rng.js';
 import { genPlayer } from '../data/gen.js';
 import { posGroup } from '../engine/game.js';
 import { ovr, MAX_ROSTER, staffRatings, userTeam } from './world.js';
-import { calendar, weekday } from './sched.js';
+import { calendar, weekday, news } from './sched.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const hash = s => [...String(s)].reduce((a, c) => (Math.imul(a, 31) + c.charCodeAt(0)) >>> 0, 2166136261);
@@ -180,7 +180,6 @@ export function commit(G, R, tid, quiet = false) {
   if (!quiet && tid === ut) news(G, `${'★'.repeat(R.rec.stars)} ${R.name} (${R.pos}, No. ${R.rec.rank}) commits to ${t.short}!`, 1);
   else if (!quiet && R.rec.stars === 5) news(G, `Five-star ${R.name} (No. ${R.rec.rank}) commits to ${t.short}.`);
 }
-const news = (G, text, me = 0) => { G.news.push({ day: G.day + 1, text, me }); if (G.news.length > 300) G.news.splice(0, G.news.length - 300); };
 
 // End of the signing period: teams with open spots take the best remaining recruits; the rest go elsewhere (gone).
 export function closeSigning(G, rng) {

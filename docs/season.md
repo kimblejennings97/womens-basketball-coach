@@ -21,8 +21,22 @@ and the WNBA season is played (2027 = 2026-27 college + 2027 WNBA). `calendar(Y)
 `advance(G)` loops days: day events (poll, conference tournament start, Selection Sunday, tournament games for the day),
 stops *before* a day with the user's game (`{stop:'game'}`), else plays the day. The UI then shows the pregame screen
 (coach live / sim); `finishUserDay` records the user's game and plays the rest of that day. Stops also at
-`selection`, `ncaa-champion`, `wnba-champion` and the offseason stops (`college-offseason`, `jobs`, `draft`, `draft-done`,
-`fa`, `new-season`; docs/offseason.md). After a league's season its player stats move into each player's history
+`selection`, `ncaa-champion`, `wnba-champion` and the offseason stops (`college-offseason`, `jobs`, `draft`, `draft-done`
+(both leagues), `fa`, `new-season`; docs/offseason.md). A day event on a day with the user's game is reported after the
+game (`G.evLater`).
+
+## Key dates (season.js `keyDates`)
+One table of the season's milestones (label, league, `stop` = whose coaches stop there, `pre` = stop that many days
+early, `own` = stop raised elsewhere, `go` = screen). Used by the Continue button label (`nextStop`), the Home
+"Coming up" card, the Calendar screen and `keyStop` (stop `key:<key>` after playing that day):
+- NCAA coaches: transfer portal opens, portal closes (+ end of signing period, same day), WNBA draft (`draft-done`).
+- WNBA coaches: free agency opens (Feb 1), cut-down day (the day before, only if over 12), trade deadline (the day
+  before), and the scouting invite (10 days before Selection Sunday; inbox invite, not with "staff handles the
+  offseason"). Accepting (`G.user.scout` = season) adds stops *before* the first round, Sweet 16, Elite Eight, Final Four
+  and title game (`stop: 'scout'`, the day's games exist but are unplayed; `advance(..., {noScout})` skips them).
+Measured (headless, one season each): Las Vegas: fa Jan 21, faOpen Feb 1, invite Mar 4, selection, 5 scouting stops,
+champion, draft x3 picks, cuts May 10, deadline Aug 4, champion, new season. UConn: selection, champion, college
+offseason, portal Apr 8, draft-done Apr 12, portal close May 20, new season. After a league's season its player stats move into each player's history
 (`archive`); league leaders read the history once the live stats are empty.
 
 ## Standings, polls, power

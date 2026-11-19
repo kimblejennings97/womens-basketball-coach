@@ -32,6 +32,17 @@ the simulation or its rng. Shown above the play-by-play in the live viewer; "Cou
 - Dead-ball steps (timeouts, subs, quarter ends): banner; quarter / game ends walk players toward the bench; a period
   start lines up a tip / centre-court restart.
 
+## Between possessions
+When the offence starts at the other end (mean distance from its basket > 36 ft):
+- Transition possessions (engine `fb` flag on the shot / turnover, display only, no rng): FAST BREAK. The ball handler
+  (rebounder / stealer, else the PG) takes the middle lane, the shooter fills a wing lane, trailers behind; defenders
+  sprint back (one to the rim, the rest trailing); no swing passes; the shot comes at 60% of the step. Step x1.15.
+- Otherwise a walk-up over the first 36% of the step (step x1.35): after a rebound an outlet pass to the PG; after a make
+  the C/PF inbounds from the baseline; after a dead ball from the sideline; the PG dribbles over half court while the
+  others run up their lanes and the defence gets back; then a short set-up and the normal phases.
+- Keyframes can be linear ('lin', running through) or ease-out ('out', arriving from a run) so runs don't stop at each
+  keyframe. The court reports the stretch as `court.mult`; the live viewer waits `delay * mult` before the next step.
+
 ## Pacing
 With the court on, a possession gets `SPEEDS_COURT` ms (slow 5.2 s, normal 3.0 s, fast 1.5 s; turbo snaps with no
 animation) instead of `SPEEDS` (court off: 1.4 / 0.65 / 0.22 / 0.04 s). The animation runs ~94% of the slot. Pause /

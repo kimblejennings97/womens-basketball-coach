@@ -38,6 +38,7 @@ export class Court {
     this.ball = { x: 47, y: 25, z: 3 };
     this.label = null; this.confetti = null;
     this.raf = null; this.logoImg = null;
+    this.mult = 1; this.ballHold = null;
     this.size();
   }
   // ---- setup
@@ -84,13 +85,14 @@ export class Court {
     const now = performance.now();
     if (this.script) this.finish();
     const S = { tracks: {}, ball: [], labels: [], dur: durMs, fx: [] };
+    this.mult = 1;
     const all = [...st.on[0], ...st.on[1]];
     if (st.home) this.homeIds = new Set(st.home);
     if (st.nums) this.nums = st.nums;
     for (const id of all) if (!this.pos[id]) this.pos[id] = this.benchSpot(id, st);
     this.onIds = all;
     for (const id of all) S.tracks[id] = [{ t: 0, x: this.pos[id].x, y: this.pos[id].y }];
-    const key = (id, t, p) => { (S.tracks[id] ||= [{ t: 0, x: this.pos[id].x, y: this.pos[id].y }]).push({ t, x: p.x, y: p.y }); };
+    const key = (id, t, p, e) => { (S.tracks[id] ||= [{ t: 0, x: this.pos[id].x, y: this.pos[id].y }]).push({ t, x: p.x, y: p.y, e }); };
     const ballK = (t, x, y, z, mode = 'air', hold = null) => S.ball.push({ t, x, y, z, mode, hold });
     const lab = (t0, t1, text, side) => S.labels.push({ t0, t1, text, side });
     const act = evs.find(e => e.type === 'shot' || e.type === 'to') || evs.find(e => e.type === 'ft') || evs.find(e => e.type === 'foul');
@@ -109,26 +111,52 @@ export class Court {
     const off = st.on[O], def = st.on[D], tac = st.tactics[O] || {}, dtac = st.tactics[D] || {};
     const h = hash(act.text + act.q + act.t);
     const set = SETS[tac.off === 'fiveout' ? 'fiveout' : tac.off === 'post' ? 'post' : tac.off === 'princeton' ? 'princeton' : 'base'];
-    const spots = off.map((id, i) => { const [d, a] = set[i % 5]; return this.spot(d, a + (((h >> (i * 3)) & 3) - 1.5) * 1.2, bx); });
+    // Between possessions (docs/animation.md): when the offence starts at the other end it has to get there. Transition
+    // possessions (engine fb flag) run a fast break; others walk the ball up (inbound after a make / dead ball, outlet
+    // after a rebound) before setting up. The step's time is stretched (this.mult) so the trip doesn't look like a jump.
+    const far = off.reduce((s2, id) => s2 + Math.abs((this.pos[id] || { x: 47 }).x - bx), 0) / 5 > 36;
+    const fb = far && act.fb && act.type !== 'foul';
+    const walk = far && !fb;
+    const hold0 = off.includes(this.ballHold) ? this.ballHold : null;
+    let spots;
+    if (fb) {
+      // lanes: the ball in the middle, wings wide and ahead, trailers behind
+      const ballMan = hold0 || off[0], sh = act.p && off.includes(act.p) ? act.p : null;
+      const lanes = [[7, 7], [7, 43], [24, 16], [30, 34]];
+      let li = 0;
+      spots = off.map(id => { if (id === ballMan) return this.spot(18, 25 + ((h & 7) - 3.5), bx); const [d, a] = lanes[(sh === id ? 0 : ++li) % 4]; return this.spot(d, a, bx); });
+    } else spots = off.map((id, i) => { const [d, a] = set[i % 5]; return this.spot(d, a + (((h >> (i * 3)) & 3) - 1.5) * 1.2, bx); });
     const guard = (p, i) => {
+      if (fb) { const cur = this.pos[def[i]] || { x: 47, y: 25 }; return i === 0 ? this.spot(5, 25, bx) : { x: cur.x + (bx - cur.x) * 0.62, y: cur.y + (25 - cur.y) * 0.3 }; }
       const z = ZONES[dtac.def];
       if (z) { const [d, a] = z[i % 5]; return this.spot(d, a, bx); }
       return { x: p.x + (bx - p.x) * 0.22, y: p.y + (by - p.y) * 0.22 };
     };
-    // phase plan (fractions of the step): set up -> ball movement -> action -> result (-> free throws)
+    // phase plan (fractions of the step): [walk-up] -> set up -> ball movement -> action -> result (-> free throws)
     const fts = evs.filter(e => e.type === 'ft'), reb = evs.find(e => e.type === 'reb');
-    const tEnd = fts.length ? 0.55 : 1, A = 0.3 * tEnd, B = 0.62 * tEnd, C = 0.78 * tEnd;
-    // set up
-    off.forEach((id, i) => key(id, A, spots[i]));
-    def.forEach((id, i) => key(id, A, guard(spots[i], i)));
+    const s0 = walk ? 0.36 : 0;
+    if (walk) this.mult = 1.35; else if (fb) this.mult = 1.15;
+    S.dur = durMs * this.mult;
+    const tEnd = s0 + (1 - s0) * (fts.length ? 0.55 : 1);
+    const ph = f => s0 + (tEnd - s0) * f;
+    const A = fb ? 0.34 * tEnd : ph(walk ? 0.16 : 0.3), B = fb ? 0.46 * tEnd : ph(0.62), C = fb ? 0.6 * tEnd : ph(0.78);
     const ballOf = id => { const k = off.indexOf(id); return k >= 0 ? spots[k] : this.pos[id] || { x: 47, y: 25 }; };
     let holder = off[0];
-    ballK(0, this.ball.x, this.ball.y, this.ball.z, 'dribble', null);
+    if (walk) holder = this.walkUp(S, off, def, spots, guard, bx, dir, s0, hold0, key, ballK, h);
+    else if (fb) {
+      holder = hold0 || off[0];
+      ballK(0, this.ball.x, this.ball.y, this.ball.z, hold0 ? 'dribble' : 'air', hold0);
+      lab(0.02, Math.max(0.1, C - 0.04), 'FAST BREAK', O);
+    }
+    // set up (a fast break: everyone sprints to the lanes / back on defence)
+    off.forEach((id, i) => key(id, A, spots[i], fb ? 'lin' : walk ? 'out' : undefined));
+    def.forEach((id, i) => key(id, A, guard(spots[i], i), fb ? 'lin' : walk ? 'out' : undefined));
+    if (!walk && !fb) ballK(0, this.ball.x, this.ball.y, this.ball.z, 'dribble', null);
     ballK(A * 0.95, ballOf(holder).x - dir * 1, ballOf(holder).y, 3, 'dribble', holder);
     // ball movement: a pass or two, then to the assister and the shooter
     const shooter = act.p && off.includes(act.p) ? act.p : off[h % 5];
     const chain = [];
-    const extra = (h >> 7) % 3;
+    const extra = fb ? 0 : (h >> 7) % 3;
     for (let k = 0; k < extra; k++) { const c = off[(h >> (9 + k * 3)) % 5]; if (c !== holder && c !== chain[chain.length - 1]) chain.push(c); }
     if (act.a && off.includes(act.a) && act.a !== shooter) chain.push(act.a);
     if (shooter !== holder) chain.push(shooter);
@@ -140,8 +168,10 @@ export class Court {
       const p = ballOf(c); ballK(t - 0.03 * tEnd, p.x, p.y, 3.5, 'air', null); ballK(t, p.x, p.y, 3.2, 'dribble', c); holder = c;
     });
     // offense drifts a little while the ball moves
-    off.forEach((id, i) => { if (id !== shooter) key(id, B, { x: spots[i].x + (((h >> i) & 1) ? 1.2 : -1.2), y: spots[i].y + (((h >> (i + 5)) & 1) ? 1.5 : -1.5) }); });
-    def.forEach((id, i) => key(id, B, guard({ x: spots[i].x, y: spots[i].y }, i)));
+    if (!fb) {
+      off.forEach((id, i) => { if (id !== shooter) key(id, B, { x: spots[i].x + (((h >> i) & 1) ? 1.2 : -1.2), y: spots[i].y + (((h >> (i + 5)) & 1) ? 1.5 : -1.5) }); });
+      def.forEach((id, i) => key(id, B, guard({ x: spots[i].x, y: spots[i].y }, i)));
+    }
 
     if (act.type === 'to') {
       if (stealer) {
@@ -205,6 +235,37 @@ export class Court {
     if (fts.length) this.freeThrows(S, fts, evs, st, O, bx, dir, key, ballK, lab, tEnd, reb);
     this.start(S, now);
   }
+  // Bring the ball up from the other end over [0, s0]: inbound (after a make / dead ball) or outlet (after a rebound),
+  // then the point guard dribbles over half court while the rest jog up and the defence gets back. Returns the handler.
+  walkUp(S, off, def, spots, guard, bx, dir, s0, hold0, key, ballK, h) {
+    const pg = off[0], endX = bx > 47 ? -1.2 : L + 1.2;           // the baseline behind the basket the offence defends
+    const lerp = (a, b, u) => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u });
+    const cur = id => this.pos[id] || { x: 47, y: 25 };
+    const side = ((h >> 2) & 1) ? 1 : -1;
+    let tGet;
+    if (hold0 && hold0 !== pg) {                                    // rebound: outlet pass to the point guard
+      const r = cur(hold0), outlet = { x: r.x + dir * 14, y: clamp(25 + side * 15, 6, 44) };
+      ballK(0, r.x, r.y, 3, 'dribble', hold0); ballK(0.07, r.x + dir * 0.6, r.y, 3, 'dribble', hold0);
+      key(pg, 0.12, outlet, 'lin'); ballK(0.14, outlet.x, outlet.y, 3.4, 'dribble', pg);
+      tGet = 0.14;
+    } else if (hold0 === pg) { const r = cur(pg); ballK(0, r.x, r.y, 3, 'dribble', pg); tGet = 0; }
+    else {                                                          // inbound: baseline after a make, sideline after a dead ball
+      const ib = off[4] !== pg ? off[4] : off[1], b = this.ball;
+      const sideline = b.y < 3 || b.y > W - 3;
+      const spot = sideline ? { x: clamp(b.x, 6, L - 6), y: b.y < 25 ? -1.2 : W + 1.2 } : { x: endX, y: 25 + side * 4 };
+      const recv = sideline ? { x: spot.x + dir * 4, y: spot.y < 0 ? 9 : W - 9 } : { x: endX + dir * 11, y: 25 - side * 9 };
+      key(ib, 0.1, spot, 'lin'); key(ib, 0.15, spot);
+      ballK(0, b.x, b.y, b.z, 'roll', null); ballK(0.1, spot.x, spot.y, 3.5, 'held', ib); ballK(0.15, spot.x, spot.y, 3.5, 'held', ib);
+      key(pg, 0.15, recv); ballK(0.2, recv.x, recv.y, 3.4, 'dribble', pg);
+      tGet = 0.2;
+    }
+    // the point guard pushes it over half court; the rest run up their lanes; the defence gets back
+    const mid = { x: 47 + dir * 7, y: 25 + side * 5 };
+    key(pg, s0, mid, 'lin'); ballK(Math.max(tGet + 0.01, s0), mid.x, mid.y, 3, 'dribble', pg);
+    off.forEach((id, i) => { if (id === pg) return; const p = lerp(cur(id), spots[i], 0.62); key(id, s0, p, 'lin'); });
+    def.forEach((id, i) => { const p = lerp(cur(id), guard(spots[i], i), 0.8); key(id, s0 * 0.9, p, 'lin'); });
+    return pg;
+  }
   rebound(S, reb, ballK, key, from, t0, t1, dir, h) {
     if (!reb) { ballK(t1, from.x - dir * 4, from.y + ((h & 2) ? 5 : -5), 0.5, 'roll', null); return; }
     const p = { x: from.x - dir * (3 + (h % 4)), y: from.y + (((h >> 5) % 9) - 4) };
@@ -259,7 +320,7 @@ export class Court {
   finish() { // jump to the end state of the running script
     const S = this.script; if (!S) return;
     for (const [id, ks] of Object.entries(S.tracks)) { const k = ks[ks.length - 1]; this.pos[id] = { x: k.x, y: k.y }; }
-    const b = S.ball[S.ball.length - 1]; if (b) this.ball = { x: b.x, y: b.y, z: b.z };
+    const b = S.ball[S.ball.length - 1]; if (b) { this.ball = { x: b.x, y: b.y, z: b.z }; this.ballHold = b.hold || null; }
     this.script = null;
   }
   snap(evs, st) { this.play(evs, st, 1); this.finish(); this.draw(1); }
@@ -277,7 +338,7 @@ export class Court {
     let i = 0; while (i < ks.length - 1 && ks[i + 1].t <= t) i++;
     const a = ks[i], b = ks[Math.min(i + 1, ks.length - 1)];
     if (b === a || b.t <= a.t) return { ...a, u: 1, a, b };
-    const u = ease(clamp((t - a.t) / (b.t - a.t), 0, 1));
+    const r = clamp((t - a.t) / (b.t - a.t), 0, 1), u = b.e === 'lin' ? r : b.e === 'out' ? 1 - (1 - r) ** 2 : ease(r);
     return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * u, u, a, b };
   }
 

@@ -19,7 +19,13 @@ live play-by-play with in-game coaching. Browser app, plain ES modules, no build
 
 Keep these files current: when you change a system, update its topic file (current design + knobs + measured results).
 
-## Where things stand (2026-11-17, end of session 2)
+## Where things stand (2026-11-18, session 3)
+- Session 3 (user's first play notes): Continue stops at each key date (docs/season.md "Key dates") and names it;
+  Inbox; Calendar with filters + sim to date; NCAA Tournament scouting invite for WNBA coaches (watch games live);
+  live game sim to end of quarter / halftime; fix: messages (e.g. "You are on the clock") stuck on every screen;
+  court animation between possessions (walk-up, inbound, outlet, fast breaks; docs/animation.md).
+
+## Earlier state (2026-11-17, end of session 2)
 - Steps 1-4 of the plan are built: real data (363 D1 + 15 WNBA teams), calibrated engine, all screens, live game viewer,
   both seasons + postseasons, and the full offseason loop (docs/offseason.md): 5-in-5 eligibility, NIL, recruiting,
   transfer portal, WNBA draft lottery + draft, free agency, cuts, trades, coaching carousel + job offers, coach growth /
